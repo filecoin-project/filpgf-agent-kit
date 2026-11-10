@@ -22,13 +22,13 @@ The toolkit includes these skills:
 | `filpgf-oso-metrics` | Read project metrics from OSO (needs your own OSO credentials) |
 | `fdp` | Query Filecoin network and market datasets |
 | `filoscope` | Search Filecoin docs, FIPs, specs, and code |
-| `filpgf-plugin-feedback` | Report significant plugin friction after you approve the report. Available from source; not included in release 0.1.0. |
+| `filpgf-plugin-feedback` | Report significant plugin friction after you approve the report. |
 
 `filpgf-read-karma`, `filpgf-review-work`, `filoscope`, and `fdp` come from their maintainers' repositories at pinned commits. Their licenses are in `THIRD_PARTY_NOTICES.md` in each package.
 
 ## Get the packages
 
-Download a package from [release 0.1.0](https://github.com/filecoin-project/filpgf-agent-kit/releases/tag/v0.1.0) and follow the steps for your client below. You do not need to clone or build this repository.
+Download a package from [release 0.1.1](https://github.com/filecoin-project/filpgf-agent-kit/releases/tag/v0.1.1) and follow the steps for your client below. You do not need to clone or build this repository.
 
 The release includes `SHA256SUMS` to verify the downloads. Packages include skills and their upstream licenses, but no credentials or configured MCP servers.
 
@@ -38,7 +38,7 @@ Isolated smoke tests loaded the toolkit in Claude Code with `--plugin-dir`, in C
 
 ### Claude Code
 
-Download and extract [the Claude marketplace ZIP](https://github.com/filecoin-project/filpgf-agent-kit/releases/download/v0.1.0/filpgf-ecosystem-0.1.0-claude-marketplace.zip). From the directory where you extracted it, run:
+Download and extract [the Claude marketplace ZIP](https://github.com/filecoin-project/filpgf-agent-kit/releases/download/v0.1.1/filpgf-ecosystem-0.1.1-claude-marketplace.zip). From the directory where you extracted it, run:
 
 ```sh
 claude plugin marketplace add ./filpgf-ecosystem-claude-marketplace
@@ -47,7 +47,7 @@ claude plugin install filpgf-ecosystem@filpgf-ecosystem-marketplace
 
 ### Claude chat and Cowork
 
-1. Download [the Claude plugin ZIP](https://github.com/filecoin-project/filpgf-agent-kit/releases/download/v0.1.0/filpgf-ecosystem-0.1.0-claude-plugin.zip). Do not extract it.
+1. Download [the Claude plugin ZIP](https://github.com/filecoin-project/filpgf-agent-kit/releases/download/v0.1.1/filpgf-ecosystem-0.1.1-claude-plugin.zip). Do not extract it.
 2. In Claude, open **Customize**, then **Plugins**.
 3. Select **Add**, then **Upload plugin**, and choose the ZIP. Do not upload the marketplace ZIP.
 
@@ -55,7 +55,7 @@ Skills that run local programs may not work in chat. For example, `filoscope` ru
 
 ### Codex CLI
 
-Download and extract [the Codex marketplace ZIP](https://github.com/filecoin-project/filpgf-agent-kit/releases/download/v0.1.0/filpgf-ecosystem-0.1.0-codex-marketplace.zip). From the directory where you extracted it, run:
+Download and extract [the Codex marketplace ZIP](https://github.com/filecoin-project/filpgf-agent-kit/releases/download/v0.1.1/filpgf-ecosystem-0.1.1-codex-marketplace.zip). From the directory where you extracted it, run:
 
 ```sh
 codex plugin marketplace add ./filpgf-ecosystem-codex-marketplace
@@ -71,7 +71,7 @@ No published ChatGPT plugin exists for this toolkit, and no ChatGPT install was 
 
 ### Pi
 
-Download and extract [the Pi package ZIP](https://github.com/filecoin-project/filpgf-agent-kit/releases/download/v0.1.0/filpgf-ecosystem-0.1.0-pi-package.zip). From the directory where you extracted it, run:
+Download and extract [the Pi package ZIP](https://github.com/filecoin-project/filpgf-agent-kit/releases/download/v0.1.1/filpgf-ecosystem-0.1.1-pi-package.zip). From the directory where you extracted it, run:
 
 ```sh
 pi install ./filpgf-ecosystem
@@ -81,7 +81,7 @@ To try it for one session without installing, run `pi -e ./filpgf-ecosystem` ins
 
 ### Other Agent Plugins clients
 
-Download and extract [the portable plugin ZIP](https://github.com/filecoin-project/filpgf-agent-kit/releases/download/v0.1.0/filpgf-ecosystem-0.1.0-agent-plugin.zip), then load its `filpgf-ecosystem` folder. That folder follows [Agent Plugins 1.0.0](https://github.com/agentplugins/agent-plugins-spec/blob/main/spec/1.0.0.md).
+Download and extract [the portable plugin ZIP](https://github.com/filecoin-project/filpgf-agent-kit/releases/download/v0.1.1/filpgf-ecosystem-0.1.1-agent-plugin.zip), then load its `filpgf-ecosystem` folder. That folder follows [Agent Plugins 1.0.0](https://github.com/agentplugins/agent-plugins-spec/blob/main/spec/1.0.0.md).
 
 ## Check that it works
 
@@ -123,7 +123,7 @@ npm run build            # Build all client packages in dist/.
 npm run validate         # Check the generated packages.
 ```
 
-On GitHub, the update workflow checks upstream skills every day at 05:17 UTC. When skills change, it tests the update, commits `imports.lock.json`, and builds fresh packages. License changes stop the update for manual review. Enable Actions on the default branch and allow the workflow to push commits; branch protection may block the bot. You can also start the workflow manually from the Actions tab. Automatic updates accept upstream instructions without human review. These updates produce CI artifacts, not new versioned releases; release 0.1.0 remains unchanged.
+On GitHub, the update workflow checks upstream skills every day at 05:17 UTC. When skills change, it tests the update, commits `imports.lock.json`, and builds fresh packages. License changes stop the update for manual review. Enable Actions on the default branch and allow the workflow to push commits; branch protection may block the bot. You can also start the workflow manually from the Actions tab. Automatic updates accept upstream instructions without human review. These updates produce CI artifacts, not new versioned releases; release 0.1.1 remains unchanged.
 
 ## License
 

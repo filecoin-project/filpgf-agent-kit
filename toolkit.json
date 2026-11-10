@@ -1,6 +1,6 @@
 {
   "name": "filpgf-ecosystem",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Shared Filecoin public goods funding context for agents: a source map from filpgf.io/llms.txt, Karma, OSO, Filecoin Data Portal and Filoscope skills.",
   "author": {
     "name": "FilPGF ecosystem contributors"
