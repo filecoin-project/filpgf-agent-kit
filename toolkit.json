@@ -1,0 +1,160 @@
+{
+  "name": "filpgf-ecosystem",
+  "version": "0.1.0",
+  "description": "Shared Filecoin public goods funding context for agents: a source map from filpgf.io/llms.txt, Karma, OSO, Filecoin Data Portal and Filoscope skills.",
+  "author": {
+    "name": "FilPGF ecosystem contributors"
+  },
+  "homepage": "https://www.filpgf.io/llms.txt",
+  "repository": "https://github.com/filecoin-project/filpgf-agent-kit",
+  "license": "MIT",
+  "keywords": [
+    "filecoin",
+    "filpgf",
+    "public-goods",
+    "karma",
+    "oso",
+    "fdp",
+    "filoscope",
+    "agent-skills"
+  ],
+  "interface": {
+    "displayName": "FilPGF Agent Kit",
+    "shortDescription": "Find and use Filecoin PGF sources",
+    "developerName": "FilPGF ecosystem contributors",
+    "category": "Productivity",
+    "defaultPrompt": [
+      "Which sources should I use to check this FilPGF milestone?",
+      "Show onboarded data over the last week from the Filecoin Data Portal"
+    ]
+  },
+  "llmsTxt": "https://www.filpgf.io/llms.txt",
+  "mcpServers": {
+    "oso": {
+      "url": "https://mcp.oso.xyz/mcp",
+      "description": "Open Source Observer (Artio) metrics, code activity and SQL over OSO datasets",
+      "auth": {
+        "scheme": "bearer",
+        "env": "OSO_TOKEN"
+      },
+      "docs": "https://docs.opensource.observer/docs/mcp.md",
+      "allowedTools": [
+        "ListDatasets",
+        "ListTablesForDataset",
+        "GetDataset",
+        "MarketplaceDatasets",
+        "ListSemanticModels",
+        "SemanticQuery",
+        "SqlQuery",
+        "GetAsyncQueryResult",
+        "GetLineage",
+        "GetViewer"
+      ],
+      "optIn": true
+    }
+  },
+  "sources": [
+    {
+      "id": "filpgf",
+      "name": "filpgf.io and app.filpgf.io",
+      "covers": "Program pages, rounds, reports, financials; entry point for agents is llms.txt",
+      "url": "https://www.filpgf.io/llms.txt",
+      "access": "Public web pages",
+      "auth": "none",
+      "authority": "Program descriptions and links",
+      "skills": [
+        "filpgf-ecosystem"
+      ],
+      "maintainer": "FilPGF program team (site source: show-karma/filecoin-grants)",
+      "report": "https://github.com/show-karma/filecoin-grants/issues/new"
+    },
+    {
+      "id": "karma-gap-api",
+      "name": "Karma GAP API",
+      "covers": "Programs, funding applications, grants, milestones, payouts, Kernel functions, commitments and readings (community `filecoin`)",
+      "url": "https://gapapi.karmahq.xyz",
+      "docs": "https://gapapi.karmahq.xyz/v2/docs/json",
+      "access": "Public HTTP GET",
+      "auth": "none for GET",
+      "authority": "Wins for amounts, milestone status and payments",
+      "skills": [
+        "filpgf-read-karma",
+        "filpgf-review-work"
+      ],
+      "maintainer": "Karma",
+      "report": "info@karmahq.xyz (see https://www.karmahq.org/mcp/connect); no public API issue tracker verified"
+    },
+    {
+      "id": "karma-mcp",
+      "name": "Karma MCP server",
+      "covers": "Karma API operations, program financials, docs search",
+      "url": "https://api.karmahq.org/mcp",
+      "docs": "https://www.karmahq.org/for-agents",
+      "access": "Streamable HTTP MCP; not bundled in this toolkit",
+      "auth": "Every tool call needs OAuth 2.1 or a scoped x-api-key from Karma settings",
+      "authority": "Same data as the GAP API",
+      "skills": [],
+      "maintainer": "Karma",
+      "report": "info@karmahq.xyz (see https://www.karmahq.org/mcp/connect)"
+    },
+    {
+      "id": "oso",
+      "name": "Open Source Observer (Artio)",
+      "covers": "Project metrics and code activity; Kernel projects on Karma carry `osoProjectSlug`",
+      "url": "https://mcp.oso.xyz/mcp",
+      "docs": "https://docs.opensource.observer/docs/mcp.md ; Filecoin guide: https://github.com/opensource-observer/insights/blob/2782f052fbd4dc3ebd3366aed29b5e755e69a09e/community/filecoin/skills.md (Apache-2.0)",
+      "access": "MCP server `oso`, opt-in at build time (`--enable-mcp oso`); the newer endpoint https://mcp.artio.so/mcp is documented upstream",
+      "auth": "Bearer API key in OSO_TOKEN (create one at https://www.artio.so/login, org Settings / API Keys) or client-managed OAuth where the host is allowed",
+      "authority": "Wins for metrics",
+      "skills": [
+        "filpgf-oso-metrics",
+        "filpgf-review-work"
+      ],
+      "maintainer": "Open Source Observer (Artio)",
+      "report": "Platform: https://github.com/opensource-observer/oso/issues/new; Filecoin metrics and guides: https://github.com/opensource-observer/insights/issues/new; project identities: https://github.com/opensource-observer/oss-directory/issues/new"
+    },
+    {
+      "id": "fdp",
+      "name": "Filecoin Data Portal",
+      "covers": "Daily Parquet and DuckDB tables for network, storage provider, PDP, Filecoin Pay and market data",
+      "url": "https://filecoindataportal.xyz",
+      "docs": "https://filecoindataportal.xyz/datasets.md",
+      "access": "Public files over HTTPS",
+      "auth": "none",
+      "authority": "Derived chain and market datasets; check each dataset page for coverage and method",
+      "skills": [
+        "fdp"
+      ],
+      "maintainer": "David Gasquez",
+      "report": "https://github.com/davidgasquez/filecoin-data-portal/issues/new"
+    },
+    {
+      "id": "filoscope",
+      "name": "Filoscope",
+      "covers": "Searchable index of Filecoin docs, FIPs, specs, code, ecosystem projects and datasets",
+      "url": "https://github.com/davidgasquez/filoscope",
+      "access": "Local QMD index pulled through the `filoscope` npm package",
+      "auth": "none",
+      "authority": "Pointers to primary documents; cite the underlying document",
+      "skills": [
+        "filoscope"
+      ],
+      "maintainer": "David Gasquez",
+      "report": "https://github.com/davidgasquez/filoscope/issues/new"
+    },
+    {
+      "id": "git",
+      "name": "Project git repositories",
+      "covers": "Code and release history of each funded project",
+      "url": "",
+      "access": "Each project's own repository",
+      "auth": "public repositories: none",
+      "authority": "Wins for code",
+      "skills": [
+        "filpgf-review-work"
+      ],
+      "maintainer": "Each project team",
+      "report": "The project's own issue tracker"
+    }
+  ]
+}

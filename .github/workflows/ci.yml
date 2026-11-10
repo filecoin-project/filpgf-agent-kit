@@ -1,0 +1,52 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+  # Called by update-imports.yml for the commit it pushes: pushes made with
+  # GITHUB_TOKEN do not trigger `push` workflows.
+  workflow_call:
+    inputs:
+      ref:
+        description: Commit to build (defaults to the triggering commit)
+        type: string
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref }}
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - name: Unit and fixture tests (offline)
+        run: npm test
+      - name: Upstream imports still match their pinned hashes
+        run: npm run imports:check
+      - name: Build (fetches pinned upstream commits)
+        run: npm run build
+      - name: Validate build output
+        run: npm run validate
+      - name: Opt-in OSO variant builds and validates
+        run: |
+          node scripts/build.mjs --out .cache/dist-oso --no-packages --enable-mcp oso
+          node scripts/validate-dist.mjs .cache/dist-oso
+      - name: Build is reproducible
+        run: |
+          cp dist/packages/SHA256SUMS /tmp/first.sums
+          npm run build
+          diff <(grep -v '\.tgz$' /tmp/first.sums) <(grep -v '\.tgz$' dist/packages/SHA256SUMS)
+      - name: Upload packaged artifacts
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: filpgf-ecosystem-packages
+          path: dist/packages/
+          if-no-files-found: error

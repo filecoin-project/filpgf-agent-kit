@@ -1,0 +1,14 @@
+# Local agent configuration can contain credentials. Never commit it.
+.pi/
+.claude/settings.local.json
+.codex/
+.env
+.env.*
+*.pem
+*.key
+
+# Build output and caches
+dist/
+.cache/
+node_modules/
+*.tgz

@@ -1,0 +1,97 @@
+{
+  "lockfileVersion": 1,
+  "imports": [
+    {
+      "skill": "filpgf-read-karma",
+      "source": {
+        "type": "git",
+        "url": "https://github.com/show-karma/filecoin-grants",
+        "ref": "main",
+        "commit": "6f26e0b8307b3833c7da6e47a8d112d3fc24ee22"
+      },
+      "path": "skills/filpgf-read-karma",
+      "license": {
+        "spdx": "MIT",
+        "file": "LICENSE",
+        "evidence": "SKILL.md frontmatter license: MIT; repository LICENSE (MIT)"
+      },
+      "files": {
+        "LICENSE": "909dbc1ec0c624785f08276b7068ed34a88612d367b3afc2d2d9499783a56a85",
+        "skills/filpgf-read-karma/SKILL.md": "fda15a59c424fe29cb0fa929616a07340d32c0918b23e251815a98b47170ddd0"
+      }
+    },
+    {
+      "skill": "filpgf-review-work",
+      "source": {
+        "type": "git",
+        "url": "https://github.com/show-karma/filecoin-grants",
+        "ref": "main",
+        "commit": "6f26e0b8307b3833c7da6e47a8d112d3fc24ee22"
+      },
+      "path": "skills/filpgf-review-work",
+      "license": {
+        "spdx": "MIT",
+        "file": "LICENSE",
+        "evidence": "SKILL.md frontmatter license: MIT; repository LICENSE (MIT)"
+      },
+      "files": {
+        "LICENSE": "909dbc1ec0c624785f08276b7068ed34a88612d367b3afc2d2d9499783a56a85",
+        "skills/filpgf-review-work/references/milestone-review.md": "950627cbdbf6f707a257b26b4907d58c4095c7f67052022e66d2f45f5bbd0b28",
+        "skills/filpgf-review-work/references/packet.md": "794e6de18a1b3e8a1b8a6000b0370aaa720db54aea9512840b810271e7ab6387",
+        "skills/filpgf-review-work/references/project-review.md": "4fb2094b1085b7c5d137da76afeebce4a28bdbb3a0a245eb2bbae31a2ec6fe09",
+        "skills/filpgf-review-work/SKILL.md": "1dcd118cf45f8f4193bb06ecd5db13a9d2c05ee31f511b9438cd8c23bab139ae"
+      }
+    },
+    {
+      "skill": "filoscope",
+      "source": {
+        "type": "git",
+        "url": "https://github.com/davidgasquez/filoscope",
+        "ref": "main",
+        "commit": "2eb3415b9e8cd3247d73d96b6c83632b38608a65"
+      },
+      "path": "",
+      "include": [
+        "SKILL.md"
+      ],
+      "license": {
+        "spdx": "MIT",
+        "file": "LICENSE",
+        "evidence": "SKILL.md frontmatter license: MIT; repository LICENSE (MIT)"
+      },
+      "files": {
+        "LICENSE": "0fe16152d405b92f6127b7c36a4b6359b759368aef97f2a1b74c834aef8cecef",
+        "SKILL.md": "519cc667f9e411a0016070591100a61d9df190b1dc0fe65ca0775cdee21d7a1d"
+      }
+    },
+    {
+      "skill": "fdp",
+      "source": {
+        "type": "git",
+        "url": "https://github.com/davidgasquez/filecoin-data-portal",
+        "ref": "main",
+        "commit": "fc9e4a944fde20ea95e2bc7d21871d6d3e95a755"
+      },
+      "path": "web/public",
+      "include": [
+        "SKILL.md"
+      ],
+      "license": {
+        "spdx": "MIT",
+        "file": "LICENSE",
+        "evidence": "repository LICENSE (MIT); SKILL.md has no license field"
+      },
+      "transforms": [
+        {
+          "type": "rewrite-root-relative-links",
+          "file": "SKILL.md",
+          "origin": "https://filecoindataportal.xyz"
+        }
+      ],
+      "files": {
+        "LICENSE": "ed1c2aa8bab01290e824c4a372d0ef2f631fd6fd89dc813b176f585e468aa9e5",
+        "web/public/SKILL.md": "4188c14176ebe71a2155fde85be669e645a55b94b873ef36da30c4f9932bc3e3"
+      }
+    }
+  ]
+}
