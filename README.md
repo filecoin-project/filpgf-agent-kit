@@ -27,13 +27,9 @@ The toolkit includes these skills:
 
 ## Get the packages
 
-No public release exists yet. To build the packages yourself, install Node.js 22 or newer and git, then run:
+Download a package from [release 0.1.0](https://github.com/filecoin-project/filpgf-agent-kit/releases/tag/v0.1.0) and follow the steps for your client below. You do not need to clone or build this repository.
 
-```sh
-npm run build
-```
-
-The packages are in `dist/`. The GitHub Actions workflow also uploads them as the `filpgf-ecosystem-packages` artifact.
+The release includes `SHA256SUMS` to verify the downloads. Packages include skills and their upstream licenses, but no credentials or configured MCP servers.
 
 ## Install in your client
 
@@ -41,31 +37,27 @@ Isolated smoke tests loaded the toolkit in Claude Code with `--plugin-dir`, in C
 
 ### Claude Code
 
-To try the toolkit for one session, run:
+Download and extract [the Claude marketplace ZIP](https://github.com/filecoin-project/filpgf-agent-kit/releases/download/v0.1.0/filpgf-ecosystem-0.1.0-claude-marketplace.zip). From the directory where you extracted it, run:
 
 ```sh
-claude --plugin-dir dist/claude/plugins/filpgf-ecosystem
-```
-
-To install it, run:
-
-```sh
-claude plugin marketplace add ./dist/claude
+claude plugin marketplace add ./filpgf-ecosystem-claude-marketplace
 claude plugin install filpgf-ecosystem@filpgf-ecosystem-marketplace
 ```
 
 ### Claude chat and Cowork
 
-1. In Claude, open **Customize**, then **Plugins**.
-2. Select **Add**, then **Upload plugin**.
-3. Upload `dist/packages/filpgf-ecosystem-0.1.0-claude-plugin.zip`. Do not upload the marketplace ZIP.
+1. Download [the Claude plugin ZIP](https://github.com/filecoin-project/filpgf-agent-kit/releases/download/v0.1.0/filpgf-ecosystem-0.1.0-claude-plugin.zip). Do not extract it.
+2. In Claude, open **Customize**, then **Plugins**.
+3. Select **Add**, then **Upload plugin**, and choose the ZIP. Do not upload the marketplace ZIP.
 
 Skills that run local programs may not work in chat. For example, `filoscope` runs `npx`. To use OSO in Claude, connect it separately in the **Connectors** tab. See [Connect OSO in Claude chat](skills/filpgf-ecosystem/references/credentials.md#connect-oso-in-claude-chat).
 
 ### Codex CLI
 
+Download and extract [the Codex marketplace ZIP](https://github.com/filecoin-project/filpgf-agent-kit/releases/download/v0.1.0/filpgf-ecosystem-0.1.0-codex-marketplace.zip). From the directory where you extracted it, run:
+
 ```sh
-codex plugin marketplace add ./dist/codex
+codex plugin marketplace add ./filpgf-ecosystem-codex-marketplace
 codex plugin add filpgf-ecosystem@filpgf-ecosystem-marketplace
 ```
 
@@ -73,26 +65,22 @@ codex plugin add filpgf-ecosystem@filpgf-ecosystem-marketplace
 
 No published ChatGPT plugin exists for this toolkit, and no ChatGPT install was tested.
 
-- **ChatGPT desktop:** OpenAI documents local plugin marketplaces for ChatGPT desktop (Work and Codex). `dist/codex` uses the documented marketplace layout. See [Build plugins](https://developers.openai.com/plugins/build/plugins).
+- **ChatGPT desktop:** OpenAI documents local plugin marketplaces for ChatGPT desktop (Work and Codex). The Codex marketplace ZIP uses the documented marketplace layout. See [Build plugins](https://developers.openai.com/plugins/build/plugins).
 - **ChatGPT web:** you can add OSO as a custom MCP server. Go to [chatgpt.com/plugins](https://chatgpt.com/plugins), select **+**, then **Add custom MCP server**, then **Create as plugin**. This step adds only OSO's tools. It does not install the toolkit's skills.
 
 ### Pi
 
-To try the toolkit for one session, run:
+Download and extract [the Pi package ZIP](https://github.com/filecoin-project/filpgf-agent-kit/releases/download/v0.1.0/filpgf-ecosystem-0.1.0-pi-package.zip). From the directory where you extracted it, run:
 
 ```sh
-pi -e ./dist/pi/filpgf-ecosystem
+pi install ./filpgf-ecosystem
 ```
 
-To install it, run:
-
-```sh
-pi install ./dist/pi/filpgf-ecosystem
-```
+To try it for one session without installing, run `pi -e ./filpgf-ecosystem` instead.
 
 ### Other Agent Plugins clients
 
-Load `dist/agent-plugin/filpgf-ecosystem`. That folder follows [Agent Plugins 1.0.0](https://github.com/agentplugins/agent-plugins-spec/blob/main/spec/1.0.0.md).
+Download and extract [the portable plugin ZIP](https://github.com/filecoin-project/filpgf-agent-kit/releases/download/v0.1.0/filpgf-ecosystem-0.1.0-agent-plugin.zip), then load its `filpgf-ecosystem` folder. That folder follows [Agent Plugins 1.0.0](https://github.com/agentplugins/agent-plugins-spec/blob/main/spec/1.0.0.md).
 
 ## Check that it works
 
@@ -108,11 +96,7 @@ Karma reads, Filecoin Data Portal files, Filoscope, and filpgf.io pages need no 
 
 Only OSO metrics need a credential. To create an OSO key or connect OSO with OAuth, follow [Get OSO and Karma credentials](skills/filpgf-ecosystem/references/credentials.md). Never paste a key into a chat.
 
-To give a CLI agent the OSO MCP server, build the OSO variant and set `OSO_TOKEN` in the shell that starts the agent:
-
-```sh
-npm run build:with-oso
-```
+The release does not configure OSO. Connect OSO separately using the credential guide. If you build from source, `npm run build:with-oso` generates an opt-in variant for CLI clients; set `OSO_TOKEN` in the shell that starts the client and install the generated package.
 
 The OSO key gives full access to your organization's OSO data. The Codex and Pi builds limit OSO tools by name, and the Claude build does not limit them. None of these limits makes the key read-only, so use a key with the least access you need. The portable package also leaves OSO tools unfiltered.
 
@@ -134,11 +118,11 @@ Edit `toolkit.json` for the source map and tool connections, and `skills/` for t
 ```sh
 npm test                 # Run offline tests.
 npm run imports:update   # Fetch the latest upstream skills and update the lock.
-npm run build            # Build all client packages.
+npm run build            # Build all client packages in dist/.
 npm run validate         # Check the generated packages.
 ```
 
-On GitHub, the update workflow checks upstream skills every day at 05:17 UTC. When skills change, it tests the update, commits `imports.lock.json`, and builds fresh packages. License changes stop the update for manual review. Enable Actions on the default branch and allow the workflow to push commits; branch protection may block the bot. You can also start the workflow manually from the Actions tab. Automatic updates accept upstream instructions without human review.
+On GitHub, the update workflow checks upstream skills every day at 05:17 UTC. When skills change, it tests the update, commits `imports.lock.json`, and builds fresh packages. License changes stop the update for manual review. Enable Actions on the default branch and allow the workflow to push commits; branch protection may block the bot. You can also start the workflow manually from the Actions tab. Automatic updates accept upstream instructions without human review. These updates produce CI artifacts, not new versioned releases; release 0.1.0 remains unchanged.
 
 ## License
 
