@@ -32,7 +32,7 @@ test("validates Agent Skills names, directory match and description", () => {
 
 test("all native skills are valid", () => {
   const dirs = listSkillDirs(path.join(repo, "skills"));
-  assert.deepEqual(dirs.map((d) => path.basename(d)).sort(), ["filpgf-ecosystem", "filpgf-oso-metrics"]);
+  assert.deepEqual(dirs.map((d) => path.basename(d)).sort(), ["filpgf-ecosystem", "filpgf-oso-metrics", "filpgf-plugin-feedback"]);
   for (const d of dirs) validateSkillDir(d);
 });
 

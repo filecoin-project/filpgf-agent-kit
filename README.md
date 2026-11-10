@@ -22,6 +22,7 @@ The toolkit includes these skills:
 | `filpgf-oso-metrics` | Read project metrics from OSO (needs your own OSO credentials) |
 | `fdp` | Query Filecoin network and market datasets |
 | `filoscope` | Search Filecoin docs, FIPs, specs, and code |
+| `filpgf-plugin-feedback` | Report significant plugin friction after you approve the report. Available from source; not included in release 0.1.0. |
 
 `filpgf-read-karma`, `filpgf-review-work`, `filoscope`, and `fdp` come from their maintainers' repositories at pinned commits. Their licenses are in `THIRD_PARTY_NOTICES.md` in each package.
 
@@ -109,7 +110,7 @@ The OSO key gives full access to your organization's OSO data. The Codex and Pi 
 
 ## Report a problem
 
-Report a problem in a data source to that source's maintainer, listed in the toolkit's source map. Report problems with imported skills to their upstream repositories. Report problems with this toolkit's own skills, source map, or packages in this repository.
+Report a problem in a data source to that source's maintainer, listed in the toolkit's source map. Report problems with imported skills to their upstream repositories. Report problems with this toolkit's own skills, source map, or packages in [GitHub issues](https://github.com/filecoin-project/filpgf-agent-kit/issues). The `filpgf-plugin-feedback` skill drafts significant blockers and recurring friction, checks for duplicates, and asks before posting a public report.
 
 ## Maintain the toolkit
 

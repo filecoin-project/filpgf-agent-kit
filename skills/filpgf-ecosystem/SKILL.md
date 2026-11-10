@@ -23,6 +23,7 @@ Pick the narrowest source that answers the question. A map of sources is more us
 | Project metrics or code activity from OSO | `filpgf-oso-metrics` |
 | Filecoin network, storage provider, PDP, Filecoin Pay or market data | `fdp` |
 | Filecoin docs, FIPs, specs, code and ecosystem projects | `filoscope` |
+| Significant setup blockers or recurring plugin friction | `filpgf-plugin-feedback` |
 
 If a listed skill is not installed, follow the source's docs link in `references/sources.md` instead.
 
@@ -40,5 +41,5 @@ If a task needs an OSO or Karma credential, or the user asks how to get one, fol
 
 - Karma GAP GET, Filecoin Data Portal files and filpgf.io pages are public.
 - OSO needs the user's own credentials (`OSO_TOKEN` or the client's OAuth sign-in) and is opt-in in this toolkit. Never ask the user to paste a token into the conversation. Point them to [references/credentials.md](references/credentials.md).
-- Workflows here are read-only. Corrections are drafted for the user to submit, never submitted automatically.
+- Data workflows here are read-only. The feedback skill may post a public GitHub issue or comment only after the user approves the exact report.
 - Access to public guidance does not imply access to a team's private records. If something is private, link it and mark it PRIVATE instead of quoting it.
