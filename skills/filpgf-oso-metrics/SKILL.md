@@ -2,7 +2,7 @@
 name: filpgf-oso-metrics
 description: Reads Filecoin project, program, pod and network metrics from Open Source Observer (OSO, now Artio) with read-only SQL over the filecoin.filpgf_public mart tables. Use when a FilPGF review or question needs OSO metrics, such as developer activity, funding totals or onboarded data for a project identified by its oso_project_slug.
 license: MIT
-compatibility: Needs an OSO MCP server (named `oso` in this toolkit, opt-in) connected with the user's own OSO/Artio credentials and a subscription to the filecoin.filpgf_public datasets.
+compatibility: Needs an OSO MCP server (named `oso` in this toolkit, opt-in) connected with the user's own OSO/Artio credentials and an OSO organization that can read the filecoin.filpgf_public dataset.
 metadata:
   maintainer: FilPGF ecosystem contributors
 ---
@@ -13,14 +13,16 @@ OSO is the authority for metrics in FilPGF reviews. Karma stays the authority fo
 
 ## Read only
 
-This skill never changes OSO state. Use only discovery and query tools: list or get datasets and tables, SQL and semantic queries, and fetching async query results. Refuse requests to create, update, delete, publish, dispatch, sync or comment through OSO, and tell the user to do that in OSO directly. If a write-capable tool is visible, do not call it. Through SQL tools, run only `SELECT`, `WITH ... SELECT`, `SHOW`, `DESCRIBE` and `EXPLAIN` statements: a query tool can still change state if the credential allows it.
+This skill never changes OSO state. Use only discovery and query tools: list or get datasets and tables, SQL and semantic queries, and fetching async query results. Refuse requests to create, update, delete, publish, dispatch, sync or comment through OSO, and tell the user to do that in OSO directly. If a write-capable tool is visible, do not call it. Through SQL tools, run only `SELECT` and `WITH ... SELECT` statements: a query tool can still change state if the credential allows it. OSO rejects `DESCRIBE` and `EXPLAIN` with `OSO_UNSUPPORTED_STATEMENT`, and `SHOW TABLES FROM filecoin.filpgf_public` returns `PERMISSION_DENIED` even when the tables are readable.
 
 ## Connect
 
 - MCP endpoint: `https://mcp.oso.xyz/mcp` (named in filpgf.io/llms.txt). OSO also documents `https://mcp.artio.so/mcp` and says the old endpoint keeps working.
 - Authentication belongs to the user: an API key in `OSO_TOKEN`, or the client's OAuth sign-in where OSO allows that client (for example, the OSO connector in Claude chat).
 - To help the user create a key or connect OSO, follow `references/credentials.md` in the `filpgf-ecosystem` skill. If that skill is not installed, send the user to https://docs.opensource.observer/docs/mcp.md.
-- If the server is missing, returns 401 or 403, or a table needs a subscription, say so and stop. Never ask for a key in chat. In a review, mark the affected figures "Can't verify" instead of estimating.
+- Every query tool takes an `orgId`. Call `GetViewer` and pick the organization that can read `filecoin.filpgf_public`. If the user belongs to more than one, ask which one to use.
+- `filecoin.filpgf_public` is not listed in the OSO marketplace, so users cannot subscribe to it. The `filecoin` organization shares it with named organizations; the user's organization must have that share.
+- If the server is missing, returns 401 or 403, or the organization cannot read the mart, say so and stop. Never ask for a key in chat. In a review, mark the affected figures "Can't verify" instead of estimating.
 
 ## Use the Filecoin guide
 
@@ -43,7 +45,9 @@ All mart tables join on `oso_project_slug`. That slug is the OSS Directory proje
 
 ## Query
 
-- Inspect the table schema first (list tables, or `DESCRIBE`).
+- `SqlQuery` returns only a `runId`. Call `GetAsyncQueryResult` with the same `orgId` and `runId` until the status is `COMPLETED` or `FAILED`; a `FAILED` run gives the reason in `message`.
+- If `GetAsyncQueryResult` says no run with that id exists, the organization most likely cannot read a table in the query. Run a query on a public `oso.*` table to check the connection, then treat the mart as not shared.
+- Read a table's columns with `SELECT * FROM <table> LIMIT 0`, or with `ListTablesForDataset` when you have the dataset id.
 - Filter by `oso_project_slug`, metric names and date range, and always add an explicit `LIMIT`.
 - Report each figure with the table, the SQL, the date range, units (from `metric_catalog`), and the time you ran it. Note caveats from the guide that apply, for example DDO onramps having NULL `client_*` metrics.
 

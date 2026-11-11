@@ -26,7 +26,7 @@ An OSO (Artio) API key gives full access to the data your organization can read.
 4. Copy the key and save it in your password manager. Artio shows the key only once.
 5. Set the key as the `OSO_TOKEN` environment variable in the shell or service that starts the agent.
 
-Queries on `filecoin.filpgf_public` tables also need your organization to have access to those datasets.
+Queries on `filecoin.filpgf_public` tables also need your organization to have access to that dataset. It is not in the OSO marketplace, so you cannot subscribe to it yourself: the `filecoin` organization shares it with named organizations. Ask for a share before you use the OSO metrics skill.
 
 Docs: https://docs.opensource.observer/docs/mcp.md
 
