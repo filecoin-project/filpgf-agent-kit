@@ -7,7 +7,7 @@
         "type": "git",
         "url": "https://github.com/show-karma/filecoin-grants",
         "ref": "main",
-        "commit": "6f26e0b8307b3833c7da6e47a8d112d3fc24ee22"
+        "commit": "9faca63f510fa14c1ea4da66a9ec23f53f99d90c"
       },
       "path": "skills/filpgf-read-karma",
       "license": {
@@ -26,7 +26,7 @@
         "type": "git",
         "url": "https://github.com/show-karma/filecoin-grants",
         "ref": "main",
-        "commit": "6f26e0b8307b3833c7da6e47a8d112d3fc24ee22"
+        "commit": "9faca63f510fa14c1ea4da66a9ec23f53f99d90c"
       },
       "path": "skills/filpgf-review-work",
       "license": {
