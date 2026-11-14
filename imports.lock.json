@@ -7,7 +7,7 @@
         "type": "git",
         "url": "https://github.com/show-karma/filecoin-grants",
         "ref": "main",
-        "commit": "9faca63f510fa14c1ea4da66a9ec23f53f99d90c"
+        "commit": "b2f2b431ddd3287fcc5a0a8c184af6f903822ba7"
       },
       "path": "skills/filpgf-read-karma",
       "license": {
@@ -26,7 +26,7 @@
         "type": "git",
         "url": "https://github.com/show-karma/filecoin-grants",
         "ref": "main",
-        "commit": "9faca63f510fa14c1ea4da66a9ec23f53f99d90c"
+        "commit": "b2f2b431ddd3287fcc5a0a8c184af6f903822ba7"
       },
       "path": "skills/filpgf-review-work",
       "license": {
@@ -70,7 +70,7 @@
         "type": "git",
         "url": "https://github.com/davidgasquez/filecoin-data-portal",
         "ref": "main",
-        "commit": "fc9e4a944fde20ea95e2bc7d21871d6d3e95a755"
+        "commit": "e3b15b266d5748d4f05117312ab5e947bf3cbe18"
       },
       "path": "web/public",
       "include": [
