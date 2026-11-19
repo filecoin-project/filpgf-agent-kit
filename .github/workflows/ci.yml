@@ -2,6 +2,7 @@ name: ci
 
 on:
   push:
+    branches-ignore: [stable]
   pull_request:
   # Called by update-imports.yml for the commit it pushes: pushes made with
   # GITHUB_TOKEN do not trigger `push` workflows.

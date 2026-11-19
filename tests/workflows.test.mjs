@@ -5,6 +5,7 @@ import fs from "node:fs";
 const read = (p) => fs.readFileSync(new URL(`../${p}`, import.meta.url), "utf8");
 const update = read(".github/workflows/update-imports.yml");
 const ci = read(".github/workflows/ci.yml");
+const release = read(".github/workflows/release.yml");
 
 test("daily update runs on a schedule and on demand, and the docs give the same time", () => {
   assert.match(update, /cron: "17 5 \* \* \*"/);
@@ -29,7 +30,7 @@ test("the pushed commit is built through the reusable CI workflow", () => {
 });
 
 test("third-party actions are pinned to full commit SHAs", () => {
-  for (const text of [update, ci]) {
+  for (const text of [update, ci, release]) {
     for (const [, ref] of text.matchAll(/uses: (?!\.\/)\S+@(\S+)/g)) assert.match(ref, /^[0-9a-f]{40}$/);
   }
 });
