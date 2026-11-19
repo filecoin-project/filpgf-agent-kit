@@ -289,7 +289,7 @@ function renderReadme(m, host, skills) {
       `Agent Plugins 1.0.0 layout: \`plugin.json\`, ${servers.length ? "`mcp.json`, " : ""}\`skills/\`.`,
       "Load it with a client that supports Agent Plugins 1.0.0." + (servers.length ? " `mcp.json` carries no credentials." : ""),
     ],
-    claude: ["Try for one session: `claude --plugin-dir <path-to-this-directory>`.", "Install from the marketplace root one level up: `claude plugin marketplace add <marketplace-root>` then `claude plugin install " + m.name + "@" + m.name + "-marketplace`."],
+    claude: ["Try for one session: `claude --plugin-dir <path-to-this-directory>`.", "To install from the marketplace, point `claude plugin marketplace add <marketplace-root>` at the extracted marketplace folder containing `.claude-plugin/marketplace.json`, then run `claude plugin install " + m.name + "@" + m.name + "-marketplace`."],
     codex: ["From the marketplace root two levels up: `codex plugin marketplace add <marketplace-root>` then `codex plugin add " + m.name + "@" + m.name + "-marketplace`."],
     pi: [
       "Try for one session: `pi -e <path-to-this-directory>`.",

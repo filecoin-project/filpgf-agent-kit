@@ -3,7 +3,8 @@
 # empty environment (env -i), temporary HOME/config dirs, no credentials, no
 # model calls. MCP header checks use a local fake server on 127.0.0.1 with a
 # dummy token. Missing CLIs are skipped. Run `npm run build` first; the MCP
-# checks use a separate build with the opt-in OSO server enabled.
+# checks use a separate build with the opt-in OSO server enabled. Release ZIP
+# checks extract dist/packages/*.zip and follow the README install commands.
 set -eu
 
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
@@ -22,6 +23,10 @@ fail=0
 ok() { echo "ok - $*"; }
 bad() { echo "FAIL - $*"; fail=1; }
 have() { command -v "$1" >/dev/null 2>&1; }
+have unzip || { echo "smoke: unzip is required"; exit 1; }
+extract() { # extract <iso-name> <zip-suffix>: unzip a release ZIP into that iso cwd
+  mkdir -p "$T/$1/cwd" && unzip -q "$(ls "$DIST"/packages/*-"$2".zip)" -d "$T/$1/cwd"
+}
 iso() { # iso <name> <cmd...>: run in an empty env with a private home
   h="$T/$1"; shift
   mkdir -p "$h/home" "$h/cfg" "$h/cwd" "$h/codex" "$h/claude" "$h/pi"
@@ -79,6 +84,18 @@ if have claude; then
   ZIP=$(ls "$DIST"/packages/*-claude-plugin.zip)
   iso claude timeout 60 claude --plugin-dir "$ZIP" plugin list >"$T/out" 2>&1 || true
   grep -q "loaded" "$T/out" && ok "claude loads packaged plugin zip" || { cat "$T/out"; bad "claude zip load"; }
+  # README path: extracted marketplace ZIP, marketplace add + plugin install.
+  extract claude-zip claude-marketplace
+  iso claude-zip timeout 60 claude plugin marketplace add "./$NAME-claude-marketplace" >"$T/out" 2>&1 \
+    && iso claude-zip timeout 60 claude plugin install "$NAME@$NAME-marketplace" >>"$T/out" 2>&1 \
+    && ok "claude marketplace ZIP: marketplace add + plugin install" || { cat "$T/out"; bad "claude marketplace ZIP install"; }
+  iso claude-zip timeout 60 claude plugin list --json >"$T/out" 2>&1 || true
+  node -e '
+    const p = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")).find((x) => x.id === process.argv[2]);
+    process.exit(p && p.enabled ? 0 : 1);' "$T/out" "$NAME@$NAME-marketplace" \
+    && ok "claude marketplace ZIP: plugin enabled" || { cat "$T/out"; bad "claude marketplace ZIP plugin not enabled"; }
+  find "$T/claude-zip/claude/plugins/cache" -name SKILL.md >"$T/out" 2>&1 || true
+  check_skills "claude marketplace ZIP installed" "$T/out" "skills/"
   local_copy "$MDIST/claude/plugins/$NAME" "$T/claude-plugin"
   : > "$T/headers.log"
   SMOKE_TOKEN=dummy-smoke-token iso claude timeout 60 claude --plugin-dir "$T/claude-plugin" mcp list >"$T/out" 2>&1 || true
@@ -87,13 +104,21 @@ if have claude; then
 else echo "skip - claude not installed"; fi
 
 if have codex; then
+  # README path: extracted default Codex marketplace ZIP (no MCP server).
+  extract codex-zip codex-marketplace
+  iso codex-zip codex plugin marketplace add "./$NAME-codex-marketplace" >"$T/out" 2>&1 \
+    && iso codex-zip codex plugin add "$NAME@$NAME-marketplace" >>"$T/out" 2>&1 \
+    && ok "codex marketplace ZIP: marketplace add + plugin add" || { cat "$T/out"; bad "codex marketplace ZIP install"; }
+  iso codex-zip timeout 120 codex debug prompt-input "smoke" >"$T/prompt" 2>&1 || true
+  check_skills "codex marketplace ZIP prompt" "$T/prompt" "$NAME:"
+  # Opt-in OSO build: MCP config checks.
   iso codex codex plugin marketplace add "$MDIST/codex" >"$T/out" 2>&1 && iso codex codex plugin add "$NAME@$NAME-marketplace" >>"$T/out" 2>&1 \
-    && ok "codex marketplace add + plugin add (compatibility layout)" || { cat "$T/out"; bad "codex install"; }
+    && ok "codex marketplace add + plugin add (OSO build)" || { cat "$T/out"; bad "codex install"; }
   iso codex codex mcp get oso >"$T/out" 2>&1 || true
   grep -q "bearer_token_env_var: OSO_TOKEN" "$T/out" && ok "codex config shows bearer_token_env_var (config only, no request sent)" || { cat "$T/out"; bad "codex mcp get"; }
   grep -q "enabled_tools: .*SqlQuery" "$T/out" && ! grep -qi "enabled_tools: .*\(create\|delete\|update\)" "$T/out" && ok "codex config shows enabled_tools name allowlist without write-named tools (config only)" || bad "codex enabled_tools"
   iso codex timeout 120 codex debug prompt-input "smoke" >"$T/prompt" 2>&1 || true
-  check_skills "codex prompt" "$T/prompt" "$NAME:"
+  check_skills "codex OSO build prompt" "$T/prompt" "$NAME:"
   # Portable Agent Plugins output through a throwaway local marketplace.
   M="$T/portable-mkt"; mkdir -p "$M/.agents/plugins" "$M/plugins"
   cp -R "$DIST/agent-plugin/$NAME" "$M/plugins/$NAME"
@@ -107,6 +132,11 @@ else echo "skip - codex not installed"; fi
 if have pi; then
   printf '%s\n' '{"type":"get_commands","id":"1"}' | iso pi timeout 60 pi --mode rpc --no-session -e "$DIST/pi/$NAME" >"$T/out" 2>&1 || true
   check_skills "pi rpc get_commands" "$T/out" "skill:"
+  # README path: extracted Pi package ZIP, persistent `pi install`, then no -e.
+  extract pi-zip pi-package
+  iso pi-zip timeout 60 pi install "./$NAME" >"$T/out" 2>&1 && ok "pi package ZIP: pi install" || { cat "$T/out"; bad "pi package ZIP install"; }
+  printf '%s\n' '{"type":"get_commands","id":"1"}' | iso pi-zip timeout 60 pi --mode rpc --no-session >"$T/out" 2>&1 || true
+  check_skills "pi package ZIP installed get_commands" "$T/out" "skill:"
   local_copy "$MDIST/pi/$NAME" "$T/pi-pkg"
   : > "$T/headers.log"
   (printf '%s\n' '{"type":"get_commands","id":"1"}'; sleep 4) | SMOKE_TOKEN=dummy-smoke-token iso pi timeout 30 pi --mode rpc --no-session -e "$T/pi-pkg" >/dev/null 2>&1 || true
