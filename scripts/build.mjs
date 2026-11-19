@@ -4,6 +4,12 @@
 //
 // Usage: node scripts/build.mjs [--out dist] [--no-imports] [--no-packages] [--enable-mcp NAME]...
 //                               [--manifest toolkit.json] [--lock imports.lock.json]
+//        node scripts/build.mjs --router-only [--out .cache/dist-router]
+//
+// --router-only builds one portable Agent Plugins ZIP holding only the router
+// skill named in toolkit.json (router.skill) and its references. No imports,
+// MCP servers or host adapters. It writes to its own directory so the default
+// and router builds never delete each other.
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -17,15 +23,20 @@ import * as A from "./lib/adapters.mjs";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 export function parseArgs(argv) {
-  const opts = { root: ROOT, out: "dist", imports: true, packages: true, manifest: "toolkit.json", lock: "imports.lock.json", skills: "skills", cache: ".cache/imports", enableMcp: [] };
+  const opts = { root: ROOT, out: "dist", imports: true, packages: true, manifest: "toolkit.json", lock: "imports.lock.json", skills: "skills", cache: ".cache/imports", enableMcp: [], routerOnly: false };
+  let outSet = false;
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === "--no-imports") opts.imports = false;
     else if (a === "--no-packages") opts.packages = false;
     else if (a === "--enable-mcp") opts.enableMcp.push(argv[++i]);
-    else if (["--out", "--manifest", "--lock", "--skills", "--cache", "--root"].includes(a)) opts[a.slice(2)] = argv[++i];
-    else throw new Error(`unknown argument ${a}`);
+    else if (a === "--router-only") opts.routerOnly = true;
+    else if (["--out", "--manifest", "--lock", "--skills", "--cache", "--root"].includes(a)) {
+      opts[a.slice(2)] = argv[++i];
+      if (a === "--out") outSet = true;
+    } else throw new Error(`unknown argument ${a}`);
   }
+  if (opts.routerOnly && !outSet) opts.out = path.join(".cache", "dist-router");
   return opts;
 }
 
@@ -37,9 +48,12 @@ export function build(opts) {
   const warnings = [];
   // Opt-in MCP servers (credentials, write-capable tools) are left out unless enabled explicitly.
   const enable = opts.enableMcp ?? [];
+  const routerOnly = Boolean(opts.routerOnly);
+  if (routerOnly && enable.length) throw new Error("--router-only builds carry no MCP servers; drop --enable-mcp");
+  const routerSkill = fullManifest.router?.skill ?? "filpgf-ecosystem";
   for (const n of enable) if (!fullManifest.mcpServers?.[n]) throw new Error(`--enable-mcp ${n}: no such server in the manifest`);
-  const mcpServers = Object.fromEntries(Object.entries(fullManifest.mcpServers ?? {}).filter(([n, s]) => !s.optIn || enable.includes(n)));
-  for (const n of Object.keys(fullManifest.mcpServers ?? {})) if (!mcpServers[n]) warnings.push(`opt-in MCP server ${n} not included (use --enable-mcp ${n})`);
+  const mcpServers = routerOnly ? {} : Object.fromEntries(Object.entries(fullManifest.mcpServers ?? {}).filter(([n, s]) => !s.optIn || enable.includes(n)));
+  if (!routerOnly) for (const n of Object.keys(fullManifest.mcpServers ?? {})) if (!mcpServers[n]) warnings.push(`opt-in MCP server ${n} not included (use --enable-mcp ${n})`);
   const manifest = { ...fullManifest, mcpServers };
 
   // Only ever delete an empty directory or a previous build output, so a typo such as `--out skills` cannot wipe sources.
@@ -55,12 +69,14 @@ export function build(opts) {
   const native = [];
   for (const dir of listSkillDirs(r(opts.skills))) {
     const { name } = validateSkillDir(dir);
+    if (routerOnly && name !== routerSkill) continue;
     listFiles(dir); // throws on symlinks and other non-regular files
     A.copyDir(dir, path.join(stageSkills, name));
     native.push(name);
   }
   const sourcesRef = path.join(stageSkills, "filpgf-ecosystem", "references", "sources.md");
   if (fs.existsSync(path.dirname(path.dirname(sourcesRef)))) A.write(sourcesRef, renderSources(manifest));
+  if (routerOnly) return buildRouter({ manifest, out, stage, skillDir: path.join(stageSkills, routerSkill), name: routerSkill, packages: opts.packages, license: fs.existsSync(r("LICENSE")) ? fs.readFileSync(r("LICENSE")) : null });
 
   // 2. Pinned upstream imports.
   const provenance = [];
@@ -172,7 +188,47 @@ export function build(opts) {
   return info;
 }
 
+/** Router-only output: a portable plugin (root plugin.json, skills/<router>/) with web-facing metadata from toolkit.json router. */
+function buildRouter({ manifest, out, stage, skillDir, name, packages, license }) {
+  if (!fs.existsSync(skillDir)) throw new Error(`router skill ${name} not found in native skills`);
+  if (validateSkillDir(skillDir).frontmatter.compatibility) throw new Error(`router skill ${name} must not declare runtime requirements (compatibility)`);
+  const { router = {} } = manifest;
+  const m = { ...manifest, description: router.description ?? manifest.description, interface: { ...manifest.interface, ...router.interface }, mcpServers: {} };
+  const dir = path.join(out, m.name);
+  A.copyDir(skillDir, path.join(dir, "skills", name));
+  A.write(path.join(dir, "plugin.json"), A.portablePlugin(m));
+  if (license) A.write(path.join(dir, "LICENSE"), license);
+  fs.rmSync(stage, { recursive: true, force: true });
+  const artifacts = {};
+  if (packages) {
+    const pkg = path.join(out, "packages");
+    const file = `${m.name}-${m.version}-router-plugin.zip`;
+    zipDirectory(dir, path.join(pkg, file), "");
+    artifacts[file] = sha256(fs.readFileSync(path.join(pkg, file)));
+    A.write(path.join(pkg, "SHA256SUMS"), `${artifacts[file]}  ${file}\n`);
+  }
+  const info = {
+    name: m.name,
+    version: m.version,
+    router: true,
+    mcpServers: [],
+    skills: { native: [name], imported: [], all: [name] },
+    imports: [],
+    outputs: { router: path.relative(out, dir) },
+    artifacts,
+    warnings: [],
+  };
+  A.write(path.join(out, "build-info.json"), info);
+  return info;
+}
+
 // ---- Generated documents ---------------------------------------------------
+
+const ROUTE_LABELS = {
+  public: "public, no account needed",
+  credential: "needs the user's own credential; hand off to the user",
+  local: "needs a local shell or runtime; hand off when unavailable",
+};
 
 export function renderSources(m) {
   const lines = [
@@ -191,7 +247,10 @@ export function renderSources(m) {
     lines.push(`- Access: ${s.access}`);
     lines.push(`- Auth: ${s.auth}`);
     lines.push(`- Authority: ${s.authority}`);
-    if (s.skills?.length) lines.push(`- Skills: ${s.skills.map((k) => `\`${k}\``).join(", ")}`);
+    if (s.route) lines.push(`- Route: ${ROUTE_LABELS[s.route]}`);
+    if (s.upstream) lines.push(`- Upstream guide: ${s.upstream}`);
+    if (s.handoff) lines.push(`- Handoff: ${s.handoff}`);
+    if (s.skills?.length) lines.push(`- Skills (when installed): ${s.skills.map((k) => `\`${k}\``).join(", ")}`);
     lines.push(`- Maintainer: ${s.maintainer}`);
     lines.push(`- Report problems: ${s.report}`, "");
   }
@@ -266,6 +325,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   try {
     const info = build(parseArgs(process.argv.slice(2)));
     console.log(`built ${info.name} ${info.version}: ${info.skills.all.length} skills (${info.skills.imported.length} imported)`);
+    for (const f of info.router ? Object.keys(info.artifacts) : []) console.log(`router plugin package: packages/${f}`);
     for (const w of info.warnings) console.log(`warning: ${w}`);
   } catch (err) {
     console.error(`build failed: ${err.message}`);

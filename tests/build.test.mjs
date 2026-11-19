@@ -150,3 +150,34 @@ test("refuses symlinks in native skills", () => {
   fs.symlinkSync("/etc/hostname", path.join(root, "skills/filpgf-ecosystem/leak"));
   assert.throws(() => build(opts(root, { imports: false, packages: false })), /non-regular file/);
 });
+
+test("--router-only packages one portable plugin with only the router skill", () => {
+  const root = fixtureProject();
+  assert.equal(parseArgs(["--router-only"]).out, path.join(".cache", "dist-router"), "separate from the default dist");
+  assert.throws(() => build(opts(root, { routerOnly: true, enableMcp: ["oso"] })), /no MCP servers/);
+  const full = build(opts(root));
+  const info = build(opts(root, { routerOnly: true, out: ".cache/dist-router" }));
+  const dist = path.join(root, ".cache/dist-router");
+  assert.deepEqual(validateDist(dist), []);
+  assert.deepEqual(validateDist(path.join(root, "dist")), [], "the router build leaves the default build intact");
+  assert.ok(full.skills.all.length > 1 && !Object.keys(full.artifacts).some((f) => f.includes("router")));
+  assert.deepEqual([info.skills.all, info.mcpServers, info.imports], [["filpgf-ecosystem"], [], []], "no MCP servers or pinned imports even when the lock has entries");
+
+  const file = `filpgf-ecosystem-${info.version}-router-plugin.zip`;
+  assert.deepEqual(Object.keys(info.artifacts), [file]);
+  const zip = readZip(path.join(dist, "packages", file));
+  assert.deepEqual([...zip.keys()].sort(), ["LICENSE", "plugin.json", ...["SKILL.md", "references/credentials.md", "references/sources.md"].map((f) => `skills/filpgf-ecosystem/${f}`)]);
+  const pj = JSON.parse(zip.get("plugin.json"));
+  assert.equal(pj.name, "filpgf-ecosystem");
+  assert.match(pj.description, /^Router for Filecoin public goods funding[\s\S]*no data skills, MCP servers or credentials/);
+  assert.equal(pj.extensions["com.openai"].interface.displayName, "FilPGF Agent Kit");
+  assert.ok(pj.extensions["com.openai"].interface.shortDescription.length <= 30);
+  const sources = zip.get("skills/filpgf-ecosystem/references/sources.md").toString();
+  assert.match(sources, /## Filoscope[\s\S]*?- Route: needs a local shell[\s\S]*?- Upstream guide: https:\/\/github.com\/davidgasquez\/filoscope[\s\S]*?- Handoff: /);
+  assert.match(sources, /## Open Source Observer[\s\S]*?- Route: needs the user's own credential/);
+  assert.doesNotMatch(zip.get("skills/filpgf-ecosystem/SKILL.md").toString(), /^compatibility:|npx /m, "no runtime requirement in the router");
+
+  // Validator rejects anything beyond the manifest, license and router skill Markdown.
+  fs.writeFileSync(path.join(dist, "filpgf-ecosystem/mcp.json"), "{}");
+  assert.ok(validateDist(dist).some((e) => /unexpected file mcp.json/.test(e)));
+});

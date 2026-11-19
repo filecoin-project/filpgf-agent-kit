@@ -11,6 +11,7 @@
   "scripts": {
     "build": "node scripts/build.mjs",
     "build:offline": "node scripts/build.mjs --no-imports",
+    "build:router": "node scripts/build.mjs --router-only --out .cache/dist-router && node scripts/validate-dist.mjs .cache/dist-router",
     "validate": "node scripts/validate-dist.mjs",
     "test": "node --test \"tests/*.test.mjs\"",
     "imports:pin": "node scripts/pin-imports.mjs",

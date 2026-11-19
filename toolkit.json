@@ -29,6 +29,19 @@
     ]
   },
   "llmsTxt": "https://www.filpgf.io/llms.txt",
+  "router": {
+    "skill": "filpgf-ecosystem",
+    "description": "Router for Filecoin public goods funding (FilPGF) questions: points agents to the right public source, maintainer and handoff. Contains only the routing skill and its source map; no data skills, MCP servers or credentials.",
+    "interface": {
+      "displayName": "FilPGF Agent Kit",
+      "shortDescription": "Find the right FilPGF source",
+      "longDescription": "Find the authoritative source for Filecoin public goods funding, milestones, payouts, and project metrics. The router explains where to look, which source wins when records disagree, and whether a tool needs separate access.",
+      "defaultPrompt": [
+        "Which sources should I use to check this FilPGF milestone, and which one wins if they disagree?",
+        "Where does Filecoin storage provider data live, and who maintains it?"
+      ]
+    }
+  },
   "mcpServers": {
     "oso": {
       "url": "https://mcp.oso.xyz/mcp",
@@ -61,6 +74,8 @@
       "url": "https://www.filpgf.io/llms.txt",
       "access": "Public web pages",
       "auth": "none",
+      "route": "public",
+      "upstream": "https://www.filpgf.io/llms.txt",
       "authority": "Program descriptions and links",
       "skills": [
         "filpgf-ecosystem"
@@ -76,6 +91,8 @@
       "docs": "https://gapapi.karmahq.xyz/v2/docs/json",
       "access": "Public HTTP GET",
       "auth": "none for GET",
+      "route": "public",
+      "upstream": "https://github.com/show-karma/filecoin-grants/tree/main/skills",
       "authority": "Wins for amounts, milestone status and payments",
       "skills": [
         "filpgf-read-karma",
@@ -92,6 +109,9 @@
       "docs": "https://www.karmahq.org/for-agents",
       "access": "Streamable HTTP MCP; not bundled in this toolkit",
       "auth": "Every tool call needs OAuth 2.1 or a scoped x-api-key from Karma settings",
+      "route": "credential",
+      "upstream": "https://www.karmahq.org/for-agents",
+      "handoff": "Not needed for reads: use `karma-gap-api`. If the user wants it, they connect it in their own client with OAuth or a scoped key (see references/credentials.md).",
       "authority": "Same data as the GAP API",
       "skills": [],
       "maintainer": "Karma",
@@ -105,6 +125,9 @@
       "docs": "https://docs.opensource.observer/docs/mcp.md ; Filecoin guide: https://github.com/opensource-observer/insights/blob/2782f052fbd4dc3ebd3366aed29b5e755e69a09e/community/filecoin/skills.md (Apache-2.0)",
       "access": "MCP server `oso`, opt-in at build time (`--enable-mcp oso`); the newer endpoint https://mcp.artio.so/mcp is documented upstream",
       "auth": "Bearer API key in OSO_TOKEN (create one at https://www.artio.so/login, org Settings / API Keys) or client-managed OAuth where the host is allowed",
+      "route": "credential",
+      "upstream": "https://github.com/opensource-observer/insights/blob/2782f052fbd4dc3ebd3366aed29b5e755e69a09e/community/filecoin/skills.md",
+      "handoff": "The user connects OSO in their own client (OAuth connector or `OSO_TOKEN`; see references/credentials.md). Until then, say OSO was not checked and mark metrics \"Can't verify\". Karma's `osoProjectSlug` still identifies the project.",
       "authority": "Wins for metrics",
       "skills": [
         "filpgf-oso-metrics",
@@ -121,6 +144,9 @@
       "docs": "https://filecoindataportal.xyz/datasets.md",
       "access": "Public files over HTTPS",
       "auth": "none",
+      "route": "public",
+      "upstream": "https://github.com/davidgasquez/filecoin-data-portal/blob/main/web/public/SKILL.md",
+      "handoff": "Dataset pages are readable on the web. Querying Parquet or DuckDB needs a code runtime; without one, read the dataset page or `https://data.filecoindataportal.xyz/daily_network_metrics.json`, or give the user the query to run.",
       "authority": "Derived chain and market datasets; check each dataset page for coverage and method",
       "skills": [
         "fdp"
@@ -135,6 +161,9 @@
       "url": "https://github.com/davidgasquez/filoscope",
       "access": "Local QMD index pulled through the `filoscope` npm package",
       "auth": "none",
+      "route": "local",
+      "upstream": "https://github.com/davidgasquez/filoscope/blob/main/SKILL.md",
+      "handoff": "Needs a shell with Node.js to run the `filoscope` npm package, which downloads a search index; ask the user before the first download. Without a shell, read and cite the primary documents instead (https://docs.filecoin.io, https://github.com/filecoin-project/FIPs).",
       "authority": "Pointers to primary documents; cite the underlying document",
       "skills": [
         "filoscope"
@@ -149,6 +178,7 @@
       "url": "",
       "access": "Each project's own repository",
       "auth": "public repositories: none",
+      "route": "public",
       "authority": "Wins for code",
       "skills": [
         "filpgf-review-work"

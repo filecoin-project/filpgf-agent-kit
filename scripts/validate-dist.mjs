@@ -28,6 +28,7 @@ export function validateDist(dist) {
   const info = readJson(path.join(dist, "build-info.json"));
   if (!info) return errors;
   const name = info.name;
+  if (info.router) return validateRouter(dist, info, errors);
 
   const checkSkills = (root, expected) => {
     const found = [];
@@ -48,16 +49,7 @@ export function validateDist(dist) {
         if (!fs.existsSync(path.join(root, "skills", s, p.licenseFile))) err(`${s}: license file missing`);
       }
     }
-    for (const d of listSkillDirs(path.join(root, "skills"))) {
-      for (const f of listFiles(d).filter((x) => x.endsWith(".md"))) {
-        const text = fs.readFileSync(path.join(d, f), "utf8");
-        for (const [, target] of text.matchAll(/\]\(([^)\s]+)\)/g)) {
-          if (/^([a-z]+:|#)/i.test(target)) continue;
-          const resolved = path.resolve(path.dirname(path.join(d, f)), decodeURI(target.split("#")[0]));
-          if (target.startsWith("/") || !resolved.startsWith(d + path.sep) || !fs.existsSync(resolved)) err(`${path.relative(dist, path.join(d, f))}: broken or escaping link ${target}`);
-        }
-      }
-    }
+    for (const d of listSkillDirs(path.join(root, "skills"))) checkLinks(dist, d, err);
     if (!fs.existsSync(path.join(root, "THIRD_PARTY_NOTICES.md"))) err(`${path.relative(dist, root)}: THIRD_PARTY_NOTICES.md missing`);
   };
   const checkHeaders = (where, servers) => {
@@ -70,14 +62,7 @@ export function validateDist(dist) {
 
   // Portable Agent Plugins 1.0.0
   const portable = path.join(dist, info.outputs["agent-plugin"]);
-  const pj = readJson(path.join(portable, "plugin.json"));
-  if (pj) {
-    if (pj.$schema !== PORTABLE_PLUGIN_SCHEMA) err("plugin.json: wrong $schema");
-    if (!isPluginName(pj.name)) err("plugin.json: invalid name");
-    for (const k of Object.keys(pj)) if (!PORTABLE_FIELDS.has(k)) err(`plugin.json: field ${k} not allowed by Agent Plugins 1.0.0`);
-    if (pj.author) for (const k of Object.keys(pj.author)) if (!["name", "email", "url"].includes(k)) err(`plugin.json: author.${k} not allowed`);
-    for (const [ns, v] of Object.entries(pj.extensions ?? {})) if (!/^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(ns) || typeof v !== "object") err(`plugin.json: bad extension namespace ${ns}`);
-  }
+  checkPortablePlugin(readJson(path.join(portable, "plugin.json")), err);
   if (fs.existsSync(path.join(portable, ".mcp.json"))) err("portable output must use mcp.json, not .mcp.json");
   if (fs.existsSync(path.join(portable, "mcp.json"))) {
     const mj = readJson(path.join(portable, "mcp.json"));
@@ -153,6 +138,55 @@ export function validateDist(dist) {
       const expected = listFiles(portable).map((f) => `${name}/${f}`);
       if (JSON.stringify(entries) !== JSON.stringify(expected)) err("agent-plugin zip contents differ from directory");
     }
+  }
+  return errors;
+}
+
+/** Agent Plugins 1.0.0 plugin.json field checks. */
+function checkPortablePlugin(pj, err) {
+  if (!pj) return;
+  if (pj.$schema !== PORTABLE_PLUGIN_SCHEMA) err("plugin.json: wrong $schema");
+  if (!isPluginName(pj.name)) err("plugin.json: invalid name");
+  for (const k of Object.keys(pj)) if (!PORTABLE_FIELDS.has(k)) err(`plugin.json: field ${k} not allowed by Agent Plugins 1.0.0`);
+  if (pj.author) for (const k of Object.keys(pj.author)) if (!["name", "email", "url"].includes(k)) err(`plugin.json: author.${k} not allowed`);
+  for (const [ns, v] of Object.entries(pj.extensions ?? {})) if (!/^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(ns) || typeof v !== "object") err(`plugin.json: bad extension namespace ${ns}`);
+}
+
+/** Relative Markdown links in a skill must resolve to files inside that skill. */
+function checkLinks(dist, d, err) {
+  for (const f of listFiles(d).filter((x) => x.endsWith(".md"))) {
+    const text = fs.readFileSync(path.join(d, f), "utf8");
+    for (const [, target] of text.matchAll(/\]\(([^)\s]+)\)/g)) {
+      if (/^([a-z]+:|#)/i.test(target)) continue;
+      const resolved = path.resolve(path.dirname(path.join(d, f)), decodeURI(target.split("#")[0]));
+      if (target.startsWith("/") || !resolved.startsWith(d + path.sep) || !fs.existsSync(resolved)) err(`${path.relative(dist, path.join(d, f))}: broken or escaping link ${target}`);
+    }
+  }
+}
+
+/** Validate a --router-only build: one portable plugin holding only the router skill; no MCP, imports or runtime requirements. */
+function validateRouter(dist, info, errors) {
+  const err = (m) => errors.push(m);
+  const dir = path.join(dist, info.outputs?.router ?? "");
+  const name = info.skills?.all?.[0];
+  if (!info.outputs?.router || !fs.existsSync(path.join(dir, "plugin.json"))) return err("router: plugin directory missing"), errors;
+  if (info.mcpServers?.length || info.imports?.length || info.skills?.imported?.length || info.skills?.all?.length !== 1) err("router: build must hold only the router skill, without MCP servers or imports");
+  checkPortablePlugin(JSON.parse(fs.readFileSync(path.join(dir, "plugin.json"), "utf8")), err);
+  const skill = path.join(dir, "skills", name ?? "");
+  try {
+    if (validateSkillDir(skill).frontmatter.compatibility) err("router: SKILL.md must not declare runtime requirements (compatibility)");
+    checkLinks(dist, skill, err);
+  } catch (e) {
+    err(e.message);
+  }
+  // Only the manifest, license and the router skill's Markdown. Nothing executable, no mcp.json or host adapters.
+  const allowed = new RegExp(`^(plugin\\.json|LICENSE|skills/${name}/(SKILL\\.md|references/[a-z0-9-]+\\.md))$`);
+  const files = listFiles(dir);
+  for (const f of files) if (!allowed.test(f)) err(`router: unexpected file ${f}`);
+  for (const [file, hash] of Object.entries(info.artifacts ?? {})) {
+    const p = path.join(dist, "packages", file);
+    if (!fs.existsSync(p) || sha256(fs.readFileSync(p)) !== hash) err(`router: ${file} missing or checksum mismatch`);
+    else if (JSON.stringify([...readZip(p).keys()].sort()) !== JSON.stringify(files)) err(`router: ${file} contents differ from directory`);
   }
   return errors;
 }

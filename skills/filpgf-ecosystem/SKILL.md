@@ -13,23 +13,27 @@ Pick the narrowest source that answers the question. A map of sources is more us
 ## Steps
 
 1. Read https://www.filpgf.io/llms.txt for the current program pages, app links and data entry points. It changes; do not rely on memory.
-2. Read [references/sources.md](references/sources.md) for each source's coverage, access, auth, maintainer and where to report problems.
-3. Load the matching skill:
+2. Read [references/sources.md](references/sources.md) for each source's coverage, route, upstream guide, auth, maintainer and where to report problems.
+3. Match the question to a source, then hand off as described below:
 
-| Question | Skill |
-|---|---|
-| Programs, applications, grants, milestones, payouts, Kernel data | `filpgf-read-karma` |
-| Review a milestone or funded project | `filpgf-review-work` |
-| Project metrics or code activity from OSO | `filpgf-oso-metrics` |
-| Filecoin network, storage provider, PDP, Filecoin Pay or market data | `fdp` |
-| Filecoin docs, FIPs, specs, code and ecosystem projects | `filoscope` |
-| Significant setup blockers or recurring plugin friction | `filpgf-plugin-feedback` |
+| Question | Source | Skill, when installed |
+|---|---|---|
+| Program pages, rounds, reports, financials | `filpgf` | none; read the pages |
+| Programs, applications, grants, milestones, payouts, Kernel data | `karma-gap-api` | `filpgf-read-karma` |
+| Review a milestone or funded project | `karma-gap-api`, `oso`, `git` | `filpgf-review-work` |
+| Project metrics or code activity from OSO | `oso` | `filpgf-oso-metrics` |
+| Filecoin network, storage provider, PDP, Filecoin Pay or market data | `fdp` | `fdp` |
+| Filecoin docs, FIPs, specs, code and ecosystem projects | `filoscope` | `filoscope` |
+| Significant setup blockers or recurring plugin friction | https://github.com/filecoin-project/filpgf-agent-kit/issues | `filpgf-plugin-feedback` |
 
-If a listed skill is not installed, follow the source's docs link in `references/sources.md` instead.
+## Hand off
 
-If a task needs an OSO or Karma credential, or the user asks how to get one, follow [references/credentials.md](references/credentials.md).
+- **Skill installed:** load it and follow it.
+- **Skill not installed:** follow the source's *Upstream guide* in `references/sources.md`. These are the maintainers' own agent instructions; prefer them over reconstructing an API from memory. Then use the source's docs.
+- **No browsing or fetching:** answer from `references/sources.md` (coverage, authority, maintainer), give the user the exact URLs to open, and say which figures you could not check live. Never invent figures.
+- **Route needs a credential or a local runtime:** this is a handoff, not a prerequisite. Tell the user what the source's *Handoff* line says, continue with public sources, and mark the affected figures "Can't verify". Ask before any download or local command.
 
-`filoscope` downloads a search index and runs the `filoscope` npm package through `npx`. Ask the user before the first download.
+If the user needs an OSO or Karma credential, or asks how to get one, follow [references/credentials.md](references/credentials.md).
 
 ## Reconcile sources
 

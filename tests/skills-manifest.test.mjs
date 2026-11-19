@@ -56,3 +56,22 @@ test("manifest rejects literal headers, insecure URLs and bad auth", () => {
   assert.throws(bad({ s: { url: "https://h/mcp", optIn: "yes" } }), /optIn/);
   validateManifest({ ...base, mcpServers: { s: { url: "http://127.0.0.1:3000/mcp" } } });
 });
+
+test("every source has a route, credential and local routes name a handoff, and the router table uses known source ids", () => {
+  const m = loadManifest(path.join(repo, "toolkit.json"));
+  for (const s of m.sources) {
+    assert.ok(["public", "credential", "local"].includes(s.route), s.id);
+    if (s.route !== "public") assert.ok(s.handoff, s.id);
+  }
+  assert.equal(m.router.skill, "filpgf-ecosystem");
+  const body = fs.readFileSync(path.join(repo, "skills/filpgf-ecosystem/SKILL.md"), "utf8");
+  const ids = new Set(m.sources.map((s) => s.id));
+  const rows = body.split("\n").filter((l) => /^\| [A-Z]/.test(l) && !l.startsWith("| Question"));
+  assert.ok(rows.length >= 6);
+  for (const row of rows) for (const [, id] of row.split("|")[2].matchAll(/`([^`]+)`/g)) assert.ok(ids.has(id), `unknown source ${id}`);
+  const base = { name: "x-y", version: "0.1.0", description: "d" };
+  const src = { id: "a", name: "n", covers: "c", access: "a", auth: "a", authority: "a", maintainer: "m", report: "r" };
+  assert.throws(() => validateManifest({ ...base, sources: [{ ...src, route: "local" }] }), /handoff is required/);
+  assert.throws(() => validateManifest({ ...base, sources: [{ ...src, route: "web" }] }), /route must be/);
+  assert.throws(() => validateManifest({ ...base, sources: [{ ...src, upstream: "http://x" }] }), /upstream/);
+});

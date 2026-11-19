@@ -4,6 +4,7 @@ import fs from "node:fs";
 const PLUGIN_NAME_RE = /^[a-z0-9](?:[a-z0-9]|-(?!-)|\.(?!\.))*[a-z0-9]$|^[a-z0-9]$/;
 const SERVER_NAME_RE = /^[A-Za-z0-9_-]+$/;
 const ENV_RE = /^[A-Z_][A-Z0-9_]*$/;
+export const ROUTES = ["public", "credential", "local"];
 
 /** Agent Plugins 1.0.0 plugin name: 1-64 of [a-z0-9.-], alphanumeric at both ends, no "--" or "..". */
 export const isPluginName = (n) => typeof n === "string" && n.length <= 64 && PLUGIN_NAME_RE.test(n);
@@ -40,7 +41,12 @@ export function validateManifest(m) {
     if (!s.id || ids.has(s.id)) errors.push(`sources: missing or duplicate id ${s.id}`);
     ids.add(s.id);
     for (const k of ["name", "covers", "access", "auth", "authority", "maintainer", "report"]) if (typeof s[k] !== "string" || !s[k]) errors.push(`sources.${s.id}: ${k} is required`);
+    // Routes say how an agent reaches the source; credential and local routes are handoffs to the user.
+    if (s.route !== undefined && !ROUTES.includes(s.route)) errors.push(`sources.${s.id}: route must be one of ${ROUTES.join(", ")}`);
+    if (s.route && s.route !== "public" && (typeof s.handoff !== "string" || !s.handoff)) errors.push(`sources.${s.id}: handoff is required for route ${s.route}`);
+    if (s.upstream !== undefined && !(URL.canParse(s.upstream) && new URL(s.upstream).protocol === "https:")) errors.push(`sources.${s.id}: upstream must be an https URL`);
   }
+  if (m.router !== undefined && !/^[a-z0-9]+(-[a-z0-9]+)*$/.test(m.router?.skill ?? "")) errors.push("router.skill must be a skill name");
   if (errors.length) throw new Error(`toolkit manifest invalid:\n- ${errors.join("\n- ")}`);
   return m;
 }
