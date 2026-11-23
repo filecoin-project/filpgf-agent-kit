@@ -24,8 +24,8 @@ import { isDeepStrictEqual } from "node:util";
 import { listFiles, listSkillDirs, validateSkillDir } from "./lib/skills.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-export const PLUGIN = "plugins/filpgf-ecosystem";
-const ROUTER = "filpgf-ecosystem";
+export const PLUGIN = "plugins/filpgf";
+const ROUTER = "filpgf";
 const SHARED = ["name", "version", "description", "author", "homepage", "repository", "license", "keywords"];
 const PORTABLE_FIELDS = new Set(["$schema", ...SHARED, "extensions"]);
 const MANIFESTS = ["plugin.json", ".claude-plugin/plugin.json"];

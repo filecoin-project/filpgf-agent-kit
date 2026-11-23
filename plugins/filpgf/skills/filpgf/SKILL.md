@@ -1,5 +1,5 @@
 ---
-name: filpgf-ecosystem
+name: filpgf
 description: Routes Filecoin public goods funding (FilPGF) questions to the right source, skill and maintainer (filpgf.io/llms.txt, Karma, Artio, Filecoin Data Portal, Filoscope and project repositories) and says which source wins when they disagree. Use first for any FilPGF, ProPGF, Kernel, Revenue Development or R&D program question, or when unsure where Filecoin ecosystem data lives.
 license: MIT
 metadata:

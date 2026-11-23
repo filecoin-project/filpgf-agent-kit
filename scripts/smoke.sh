@@ -18,10 +18,10 @@ ok() { echo "ok - $*"; }
 bad() { echo "FAIL - $*"; fail=1; }
 have() { command -v "$1" >/dev/null 2>&1; }
 
-NAME=filpgf-ecosystem
+NAME=filpgf
 V1=$(node -p "require('$ROOT/package.json').version")
 V2=$(node -p "const [a,b,c]='$V1'.split('.').map(Number); [a,b,c+1].join('.')")
-ID="$NAME@$NAME-marketplace"
+ID="$NAME@$NAME"
 
 # publish <version>: push a snapshot of this checkout at <version> to the local bare repo main branch.
 publish() {
@@ -89,14 +89,14 @@ publish "$V2"
 ok "main advanced to v$V2"
 
 if have claude; then
-  iso claude timeout 120 claude plugin marketplace update "$NAME-marketplace" >"$T/out" 2>&1 \
+  iso claude timeout 120 claude plugin marketplace update "$NAME" >"$T/out" 2>&1 \
     && iso claude timeout 60 claude plugin update "$ID" >>"$T/out" 2>&1 || true
   [ "$(claude_version)" = "$V2" ] && ok "claude: marketplace update + plugin update -> $V2" || { cat "$T/out"; bad "claude: not updated to $V2"; }
 fi
 if have codex; then
-  iso codex timeout 120 codex plugin marketplace upgrade "$NAME-marketplace" >"$T/out" 2>&1 \
+  iso codex timeout 120 codex plugin marketplace upgrade "$NAME" >"$T/out" 2>&1 \
     && iso codex timeout 60 codex plugin add "$ID" >>"$T/out" 2>&1 || true
-  [ -d "$T/codex/codex/plugins/cache/$NAME-marketplace/$NAME/$V2" ] && ok "codex: marketplace upgrade + plugin add -> $V2" || { cat "$T/out"; bad "codex: not updated to $V2"; }
+  [ -d "$T/codex/codex/plugins/cache/$NAME/$NAME/$V2" ] && ok "codex: marketplace upgrade + plugin add -> $V2" || { cat "$T/out"; bad "codex: not updated to $V2"; }
 fi
 if have pi; then
   iso pi timeout 120 pi update --extensions >"$T/out" 2>&1 || true

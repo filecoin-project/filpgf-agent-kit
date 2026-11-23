@@ -55,10 +55,10 @@ function commitStep(files) {
 }
 
 test("the update commit step accepts changes to imported skills and refuses anything else", () => {
-  const ok = commitStep({ "plugins/filpgf-ecosystem/skills/fdp/SKILL.md": "new\n", "plugins/filpgf-ecosystem/THIRD_PARTY_NOTICES.md": "n\n" });
+  const ok = commitStep({ "plugins/filpgf/skills/fdp/SKILL.md": "new\n", "plugins/filpgf/THIRD_PARTY_NOTICES.md": "n\n" });
   assert.equal(ok.status, 0, ok.stderr + ok.stdout);
-  for (const f of ["plugins/filpgf-ecosystem/skills/filpgf-ecosystem/SKILL.md", "plugins/filpgf-ecosystem/mcp.json", ".github/workflows/ci.yml", "plugins/filpgf-ecosystem/skills/fdp-evil/SKILL.md"]) {
-    const r = commitStep({ "plugins/filpgf-ecosystem/skills/fdp/SKILL.md": "new\n", [f]: "x\n" });
+  for (const f of ["plugins/filpgf/skills/filpgf/SKILL.md", "plugins/filpgf/mcp.json", ".github/workflows/ci.yml", "plugins/filpgf/skills/fdp-evil/SKILL.md"]) {
+    const r = commitStep({ "plugins/filpgf/skills/fdp/SKILL.md": "new\n", [f]: "x\n" });
     assert.notEqual(r.status, 0, `${f} must be refused`);
     assert.match(r.stdout, /outside the imported skills/);
   }

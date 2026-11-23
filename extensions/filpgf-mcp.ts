@@ -7,7 +7,7 @@ import fs from "node:fs";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
 export default function (pi: ExtensionAPI) {
-  const file = new URL("../plugins/filpgf-ecosystem/mcp.json", import.meta.url);
+  const file = new URL("../plugins/filpgf/mcp.json", import.meta.url);
   const { mcpServers } = JSON.parse(fs.readFileSync(file, "utf8")) as { mcpServers: Record<string, { url: string }> };
   for (const [name, { url }] of Object.entries(mcpServers)) {
     try {

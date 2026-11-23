@@ -37,8 +37,8 @@ test("check catches drift between copies and unsafe MCP servers", () => {
     [(r) => edit(r, `${PLUGIN}/mcp.json`, (j) => ((j.mcpServers.extra = { type: "streamable-http", url: "https://x.example/mcp" }), j)), /mcpServers differs from mcp\.json/],
     [(r) => edit(r, `${PLUGIN}/plugin.json`, (j) => ({ ...j, skills: "./skills" })), /field skills is not allowed/],
     [(r) => edit(r, ".claude-plugin/marketplace.json", (j) => ((j.plugins[0].skills = j.plugins[0].skills.slice(1)), j)), /skills must list/],
-    [(r) => edit(r, ".agents/plugins/marketplace.json", (j) => ((j.plugins[0].source.path = "./elsewhere"), j)), /must list filpgf-ecosystem once/],
-    [(r) => fs.appendFileSync(path.join(r, PLUGIN, "skills/filpgf-ecosystem/SKILL.md"), "\n[gone](references/missing.md)\n"), /broken or escaping link references\/missing\.md/],
+    [(r) => edit(r, ".agents/plugins/marketplace.json", (j) => ((j.plugins[0].source.path = "./elsewhere"), j)), /must list filpgf once/],
+    [(r) => fs.appendFileSync(path.join(r, PLUGIN, "skills/filpgf/SKILL.md"), "\n[gone](references/missing.md)\n"), /broken or escaping link references\/missing\.md/],
     [(r) => fs.cpSync(path.join(r, PLUGIN, "skills/filpgf-plugin-feedback"), path.join(r, PLUGIN, "skills/orphan-skill"), { recursive: true }), /orphan-skill/],
     [(r) => edit(r, "imports.lock.json", (j) => ((j.imports[0].source.commit = "0".repeat(40)), j)), /not at the pinned commit/],
   ];
@@ -51,7 +51,7 @@ test("check catches drift between copies and unsafe MCP servers", () => {
 
 test("a skill added without a router row, or a router row without a source section, fails", () => {
   const root = copy();
-  const router = path.join(root, PLUGIN, "skills/filpgf-ecosystem/SKILL.md");
+  const router = path.join(root, PLUGIN, "skills/filpgf/SKILL.md");
   fs.writeFileSync(router, fs.readFileSync(router, "utf8").replace("| `fdp` | `fdp` |", "| `fdp-new` | `fdp` |"));
   assert.match(check(root).join("\n"), /source fdp-new has no section in references\/sources\.md/);
 });

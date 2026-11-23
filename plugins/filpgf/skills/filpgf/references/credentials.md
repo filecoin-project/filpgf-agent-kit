@@ -19,7 +19,7 @@ The plugin also includes two MCP servers: `artio` (https://mcp.artio.so/mcp) and
 
 | Client | How |
 |---|---|
-| Claude Code | Run `/mcp`, select `plugin:filpgf-ecosystem:artio` or `plugin:filpgf-ecosystem:karma`, then **Authenticate**. |
+| Claude Code | Run `/mcp`, select `plugin:filpgf:artio` or `plugin:filpgf:karma`, then **Authenticate**. |
 | Codex | Run `codex mcp login artio` or `codex mcp login karma` in a terminal. |
 | Pi | Run `/mcp login artio` or `/mcp login karma` in a session. |
 | Claude chat | Use the Artio connector in the Claude directory (listed as OSO at https://claude.ai/directory/oso), or add a custom connector with the server URL. |

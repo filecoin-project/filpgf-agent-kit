@@ -1,14 +1,14 @@
 {
-  "name": "filpgf-ecosystem-marketplace",
+  "name": "filpgf",
   "interface": {
     "displayName": "FilPGF Agent Kit"
   },
   "plugins": [
     {
-      "name": "filpgf-ecosystem",
+      "name": "filpgf",
       "source": {
         "source": "local",
-        "path": "./plugins/filpgf-ecosystem"
+        "path": "./plugins/filpgf"
       },
       "policy": {
         "installation": "AVAILABLE",

@@ -19,7 +19,7 @@ This skill never changes Artio state. Use only discovery and query tools: list o
 
 - MCP endpoint: `https://mcp.artio.so/mcp`. filpgf.io/llms.txt still lists the old `https://mcp.oso.xyz/mcp`, which keeps working.
 - The user signs in with OAuth from their client (for example `/mcp` in Claude Code, `codex mcp login artio` in Codex). Never ask for an API key.
-- To help the user sign in, follow `references/credentials.md` in the `filpgf-ecosystem` skill. If that skill is not installed, send the user to https://docs.opensource.observer/docs/mcp.md.
+- To help the user sign in, follow `references/credentials.md` in the `filpgf` skill. If that skill is not installed, send the user to https://docs.opensource.observer/docs/mcp.md.
 - Every query tool takes an `orgId`. Call `GetViewer` and pick the organization that can read `filecoin.filpgf_public`. If the user belongs to more than one, ask which one to use.
 - `filecoin.filpgf_public` is not listed in the Artio marketplace, so users cannot subscribe to it. The `filecoin` organization shares it with named organizations; the user's organization must have that share.
 - If the server is missing or needs sign-in (401 or 403), or the organization cannot read the mart, say so, give the user the sign-in step, and stop. Never ask for a key in chat. In a review, mark the affected figures "Can't verify" instead of estimating.

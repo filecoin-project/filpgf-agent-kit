@@ -30,13 +30,13 @@ test("validates Agent Skills names, directory match and description", () => {
 });
 
 test("every skill in the plugin is valid", () => {
-  const dirs = listSkillDirs(path.join(repo, "plugins/filpgf-ecosystem/skills"));
-  assert.deepEqual(dirs.map((d) => path.basename(d)), ["fdp", "filoscope", "filpgf-artio-metrics", "filpgf-ecosystem", "filpgf-plugin-feedback", "filpgf-read-karma", "filpgf-review-work"]);
+  const dirs = listSkillDirs(path.join(repo, "plugins/filpgf/skills"));
+  assert.deepEqual(dirs.map((d) => path.basename(d)), ["fdp", "filoscope", "filpgf", "filpgf-artio-metrics", "filpgf-plugin-feedback", "filpgf-read-karma", "filpgf-review-work"]);
   for (const d of dirs) validateSkillDir(d);
 });
 
 test("every source in the source map names its route, authority and maintainer, and a handoff unless it is public", () => {
-  const md = fs.readFileSync(path.join(repo, "plugins/filpgf-ecosystem/skills/filpgf-ecosystem/references/sources.md"), "utf8");
+  const md = fs.readFileSync(path.join(repo, "plugins/filpgf/skills/filpgf/references/sources.md"), "utf8");
   const sections = md.split(/^## /m).slice(1);
   assert.ok(sections.length >= 7);
   for (const sec of sections) {

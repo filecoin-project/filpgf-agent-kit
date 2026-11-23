@@ -13,7 +13,7 @@ Start from https://www.filpgf.io/llms.txt for the current list of program pages,
 - Authority: Program descriptions and links
 - Route: public, no account needed
 - Upstream guide: https://www.filpgf.io/llms.txt
-- Skills (when installed): `filpgf-ecosystem`
+- Skills (when installed): `filpgf`
 - Maintainer: FilPGF program team (site source: show-karma/filecoin-grants)
 - Report problems: https://github.com/show-karma/filecoin-grants/issues/new
 

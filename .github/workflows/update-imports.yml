@@ -89,7 +89,7 @@ jobs:
         run: |
           git apply --index "$RUNNER_TEMP/update/update.patch"
           jq -e '.lockfileVersion == 1 and (.imports | length > 0)' imports.lock.json >/dev/null
-          allowed="^(imports\.lock\.json|plugins/filpgf-ecosystem/THIRD_PARTY_NOTICES\.md|plugins/filpgf-ecosystem/skills/($(jq -r '[.imports[].skill] | join("|")' imports.lock.json))/.+)$"
+          allowed="^(imports\.lock\.json|plugins/filpgf/THIRD_PARTY_NOTICES\.md|plugins/filpgf/skills/($(jq -r '[.imports[].skill] | join("|")' imports.lock.json))/.+)$"
           git diff --cached --name-only | tee "$RUNNER_TEMP/changed.txt"
           if grep -Ev "$allowed" "$RUNNER_TEMP/changed.txt"; then echo "the update touches files outside the imported skills"; exit 1; fi
           git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \

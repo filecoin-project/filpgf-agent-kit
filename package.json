@@ -22,7 +22,7 @@
   },
   "pi": {
     "skills": [
-      "./plugins/filpgf-ecosystem/skills"
+      "./plugins/filpgf/skills"
     ],
     "extensions": [
       "./extensions"
@@ -39,6 +39,6 @@
     "imports:pin": "node scripts/pin-imports.mjs",
     "imports:update": "node scripts/update-imports.mjs && node scripts/sync-skills.mjs",
     "smoke": "sh scripts/smoke.sh",
-    "version": "node scripts/check.mjs --set-version && git add plugins/filpgf-ecosystem"
+    "version": "node scripts/check.mjs --set-version && git add plugins/filpgf"
   }
 }

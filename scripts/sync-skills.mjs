@@ -14,7 +14,7 @@ import { loadLock, materializeImport } from "./lib/imports.mjs";
 import { listFiles } from "./lib/skills.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-export const PLUGIN = "plugins/filpgf-ecosystem";
+export const PLUGIN = "plugins/filpgf";
 
 export function syncSkills({ root = ROOT, check = false, cache = path.join(ROOT, ".cache/imports") } = {}) {
   const lock = loadLock(path.join(root, "imports.lock.json"));

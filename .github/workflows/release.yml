@@ -40,7 +40,7 @@ jobs:
       - name: Package the plugin folder
         run: |
           mkdir -p "$RUNNER_TEMP/release"
-          git archive --format=zip --prefix=filpgf-ecosystem/ -o "$RUNNER_TEMP/release/filpgf-ecosystem-${TAG#v}.zip" "$GITHUB_SHA:plugins/filpgf-ecosystem"
+          git archive --format=zip --prefix=filpgf/ -o "$RUNNER_TEMP/release/filpgf-${TAG#v}.zip" "$GITHUB_SHA:plugins/filpgf"
           (cd "$RUNNER_TEMP/release" && sha256sum -- *.zip > SHA256SUMS)
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
