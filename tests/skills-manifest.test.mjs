@@ -40,21 +40,20 @@ test("toolkit.json is valid and routes every source to a maintainer", () => {
   const m = loadManifest(path.join(repo, "toolkit.json"));
   for (const s of m.sources) assert.ok(s.report && s.maintainer, s.id);
   assert.ok(m.llmsTxt.endsWith("/llms.txt"));
-  assert.equal(m.mcpServers.oso.optIn, true, "authenticated, write-capable OSO stays opt-in");
+  assert.deepEqual(Object.keys(m.mcpServers), ["oso", "karma"], "OSO and Karma ship in the plugin");
+  for (const s of Object.values(m.mcpServers)) assert.ok(!("auth" in s || "headers" in s), "servers rely on client OAuth");
 });
 
-test("manifest rejects literal headers, insecure URLs and bad auth", () => {
+test("manifest rejects credentials, insecure URLs and unknown server fields", () => {
   const base = { name: "x-y", version: "0.1.0", description: "d" };
   const bad = (servers) => () => validateManifest({ ...base, mcpServers: servers });
-  assert.throws(bad({ s: { url: "https://h/mcp", headers: { Authorization: "Bearer abc" } } }), /literal headers/);
+  assert.throws(bad({ s: { url: "https://h/mcp", headers: { Authorization: "Bearer abc" } } }), /field headers is not allowed/);
+  assert.throws(bad({ s: { url: "https://h/mcp", auth: { scheme: "bearer", env: "T" } } }), /field auth is not allowed/);
   assert.throws(bad({ s: { url: "http://example.com/mcp" } }), /https/);
   assert.throws(bad({ s: { url: "https://user:pw@example.com/mcp" } }), /credentials/);
-  assert.throws(bad({ s: { url: "https://h/mcp", auth: { scheme: "bearer", env: "lower" } } }), /environment variable/);
-  assert.throws(bad({ s: { url: "https://h/mcp", auth: { scheme: "header", env: "K" } } }), /auth.header/);
-  assert.throws(() => validateManifest({ ...base, name: "Bad--Name" }), /name/);
   assert.throws(bad({ s: { url: "https://h/mcp", allowedTools: [] } }), /allowedTools/);
-  assert.throws(bad({ s: { url: "https://h/mcp", optIn: "yes" } }), /optIn/);
-  validateManifest({ ...base, mcpServers: { s: { url: "http://127.0.0.1:3000/mcp" } } });
+  assert.throws(() => validateManifest({ ...base, name: "Bad--Name" }), /name/);
+  validateManifest({ ...base, mcpServers: { s: { url: "https://h/mcp", allowedTools: ["Read"] } } });
 });
 
 test("every source has a route, credential and local routes name a handoff, and the router table uses known source ids", () => {
@@ -63,7 +62,6 @@ test("every source has a route, credential and local routes name a handoff, and 
     assert.ok(["public", "credential", "local"].includes(s.route), s.id);
     if (s.route !== "public") assert.ok(s.handoff, s.id);
   }
-  assert.equal(m.router.skill, "filpgf-ecosystem");
   const body = fs.readFileSync(path.join(repo, "skills/filpgf-ecosystem/SKILL.md"), "utf8");
   const ids = new Set(m.sources.map((s) => s.id));
   const rows = body.split("\n").filter((l) => /^\| [A-Z]/.test(l) && !l.startsWith("| Question"));

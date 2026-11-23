@@ -2,7 +2,7 @@
 name: filpgf-oso-metrics
 description: Reads Filecoin project, program, pod and network metrics from Open Source Observer (OSO, now Artio) with read-only SQL over the filecoin.filpgf_public mart tables. Use when a FilPGF review or question needs OSO metrics, such as developer activity, funding totals or onboarded data for a project identified by its oso_project_slug.
 license: MIT
-compatibility: Needs an OSO MCP server (named `oso` in this toolkit, opt-in) connected with the user's own OSO/Artio credentials and an OSO organization that can read the filecoin.filpgf_public dataset.
+compatibility: Needs the OSO MCP server (`oso` in this plugin) signed in with the user's own Artio account, and an OSO organization that can read the filecoin.filpgf_public dataset.
 metadata:
   maintainer: FilPGF ecosystem contributors
 ---
@@ -13,16 +13,16 @@ OSO is the authority for metrics in FilPGF reviews. Karma stays the authority fo
 
 ## Read only
 
-This skill never changes OSO state. Use only discovery and query tools: list or get datasets and tables, SQL and semantic queries, and fetching async query results. Refuse requests to create, update, delete, publish, dispatch, sync or comment through OSO, and tell the user to do that in OSO directly. If a write-capable tool is visible, do not call it. Through SQL tools, run only `SELECT` and `WITH ... SELECT` statements: a query tool can still change state if the credential allows it. OSO rejects `DESCRIBE` and `EXPLAIN` with `OSO_UNSUPPORTED_STATEMENT`, and `SHOW TABLES FROM filecoin.filpgf_public` returns `PERMISSION_DENIED` even when the tables are readable.
+This skill never changes OSO state. Use only discovery and query tools: list or get datasets and tables, SQL and semantic queries, and fetching async query results. Refuse requests to create, update, delete, publish, dispatch, sync or comment through OSO, and tell the user to do that in OSO directly. If a write-capable tool is visible, do not call it. Through SQL tools, run only `SELECT` and `WITH ... SELECT` statements: a query tool can still change state if the sign-in allows it. OSO rejects `DESCRIBE` and `EXPLAIN` with `OSO_UNSUPPORTED_STATEMENT`, and `SHOW TABLES FROM filecoin.filpgf_public` returns `PERMISSION_DENIED` even when the tables are readable.
 
 ## Connect
 
 - MCP endpoint: `https://mcp.oso.xyz/mcp` (named in filpgf.io/llms.txt). OSO also documents `https://mcp.artio.so/mcp` and says the old endpoint keeps working.
-- Authentication belongs to the user: an API key in `OSO_TOKEN`, or the client's OAuth sign-in where OSO allows that client (for example, the OSO connector in Claude chat).
-- To help the user create a key or connect OSO, follow `references/credentials.md` in the `filpgf-ecosystem` skill. If that skill is not installed, send the user to https://docs.opensource.observer/docs/mcp.md.
+- The user signs in with OAuth from their client (for example `/mcp` in Claude Code, `codex mcp login oso` in Codex). Never ask for an API key.
+- To help the user sign in, follow `references/credentials.md` in the `filpgf-ecosystem` skill. If that skill is not installed, send the user to https://docs.opensource.observer/docs/mcp.md.
 - Every query tool takes an `orgId`. Call `GetViewer` and pick the organization that can read `filecoin.filpgf_public`. If the user belongs to more than one, ask which one to use.
 - `filecoin.filpgf_public` is not listed in the OSO marketplace, so users cannot subscribe to it. The `filecoin` organization shares it with named organizations; the user's organization must have that share.
-- If the server is missing, returns 401 or 403, or the organization cannot read the mart, say so and stop. Never ask for a key in chat. In a review, mark the affected figures "Can't verify" instead of estimating.
+- If the server is missing or needs sign-in (401 or 403), or the organization cannot read the mart, say so, give the user the sign-in step, and stop. Never ask for a key in chat. In a review, mark the affected figures "Can't verify" instead of estimating.
 
 ## Use the Filecoin guide
 

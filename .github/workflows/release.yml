@@ -1,10 +1,10 @@
 name: release
 
 # Tag-triggered release. Pushing a tag vX.Y.Z (matching toolkit.json and
-# package.json) builds, tests and validates every package, publishes a GitHub
-# release with SHA256SUMS and, when the tag is newer than what the generated
-# `stable` branch holds, replaces `stable` with the router-only marketplace
-# tree. Nothing is ever pushed to a source branch.
+# package.json) tests, builds and validates the plugin, publishes a GitHub
+# release with the plugin ZIP and SHA256SUMS and, when the tag is newer than
+# the `stable` branch, commits dist/stable/ onto `stable`. Every client
+# installs from that branch. Nothing is ever pushed to a source branch.
 on:
   push:
     tags: ["v*"]
@@ -40,49 +40,40 @@ jobs:
         with:
           node-version: 24
       - name: Tag matches toolkit.json and package.json
-        run: node scripts/stable-branch.mjs verify-tag "$TAG"
+        run: node scripts/release.mjs verify-tag "$TAG"
       - name: Tagged commit is on the default branch
         run: git merge-base --is-ancestor "$GITHUB_SHA" "refs/remotes/origin/$DEFAULT_BRANCH"
       - name: Unit and fixture tests (offline)
         run: npm test
       - name: Upstream imports still match their pinned hashes
         run: npm run imports:check
-      - name: Build and validate the seven-skill packages
+      - name: Build and validate
         run: |
           npm run build
           npm run validate
-      - name: Build and validate the router-only plugin
-        run: npm run build:router
-      - name: Assemble and validate the stable marketplace tree
-        run: |
-          node scripts/stable-branch.mjs assemble --tag "$TAG" --commit "$GITHUB_SHA" --repo "$GITHUB_REPOSITORY" \
-            --zip ".cache/stable-packages/filpgf-ecosystem-${TAG#v}-stable-marketplace.zip"
-          node scripts/stable-branch.mjs check --router .cache/dist-router --tag "$TAG"
       - name: Decide whether the tag may replace the stable branch (never backwards)
         id: decide
-        # bash -eo pipefail: a stable branch without a readable STABLE.json fails the run instead of looking empty.
+        # bash -eo pipefail: a stable branch without a readable package.json fails the run instead of looking empty.
         shell: bash
         run: |
           if git rev-parse -q --verify refs/remotes/origin/stable >/dev/null; then
             base=$(git rev-parse refs/remotes/origin/stable)
-            current=$(git show "$base:STABLE.json" | jq -r .version)
+            current=$(git show "$base:package.json" | jq -r .version)
           else
             base=""; current=""
           fi
-          node scripts/stable-branch.mjs decide "$TAG" "$current" >> "$GITHUB_OUTPUT"
+          node scripts/release.mjs decide "$TAG" "$current" >> "$GITHUB_OUTPUT"
           echo "base=$base" >> "$GITHUB_OUTPUT"
           case "$TAG" in *-*) echo "prerelease=true" ;; *) echo "prerelease=false" ;; esac >> "$GITHUB_OUTPUT"
-      - name: Collect release assets with checksums
+      - name: Package the stable tree
         run: |
-          out="$RUNNER_TEMP/release"
-          mkdir -p "$out" "$RUNNER_TEMP/stable"
-          cp dist/packages/*.zip dist/packages/*.tgz .cache/dist-router/packages/*.zip .cache/stable-packages/*.zip "$out/"
-          (cd "$out" && sha256sum -- * > SHA256SUMS && cat SHA256SUMS)
-          tar --sort=name --owner=0 --group=0 --numeric-owner --mtime=@0 -C .cache/stable -cf "$RUNNER_TEMP/stable/stable-tree.tar" .
+          mkdir -p "$RUNNER_TEMP/stable"
+          (cd dist/packages && sha256sum -c SHA256SUMS)
+          tar --sort=name --owner=0 --group=0 --numeric-owner --mtime=@0 -C dist/stable -cf "$RUNNER_TEMP/stable/stable-tree.tar" .
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: release-assets
-          path: ${{ runner.temp }}/release/
+          path: dist/packages/
           if-no-files-found: error
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -113,7 +104,7 @@ jobs:
           cd "$RUNNER_TEMP/release"
           sha256sum -c SHA256SUMS
           if gh release view "$TAG" >/dev/null 2>&1; then echo "release $TAG already exists; not replacing its assets"; exit 1; fi
-          flags=(--verify-tag --title "$TAG" --notes "Packages for $TAG. Verify downloads with \`sha256sum -c --ignore-missing SHA256SUMS\`.")
+          flags=(--verify-tag --title "$TAG" --notes "Install from the \`stable\` branch: see the README. The ZIP holds the plugin folder for clients that upload a plugin. Verify it with \`sha256sum -c SHA256SUMS\`.")
           if [ "$PRERELEASE" = true ]; then flags+=(--prerelease); fi
           if [ "$ADVANCES_STABLE" != true ]; then flags+=(--latest=false); fi
           gh release create "$TAG" "${flags[@]}" -- *
@@ -153,7 +144,7 @@ jobs:
           auth=()
           if [ -n "${TOKEN:-}" ]; then auth=(-c "http.extraheader=AUTHORIZATION: basic $(printf 'x-access-token:%s' "$TOKEN" | base64 -w0)"); fi
           tar -xf "$TREE"
-          test "$(jq -r .tag STABLE.json)" = "$TAG"
+          test "v$(jq -r .version package.json)" = "$TAG"
           git add -A
           parent=()
           if [ -n "$BASE" ]; then

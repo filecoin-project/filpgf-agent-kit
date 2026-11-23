@@ -31,9 +31,9 @@ Pick the narrowest source that answers the question. A map of sources is more us
 - **Skill installed:** load it and follow it.
 - **Skill not installed:** follow the source's *Upstream guide* in `references/sources.md`. These are the maintainers' own agent instructions; prefer them over reconstructing an API from memory. Then use the source's docs.
 - **No browsing or fetching:** answer from `references/sources.md` (coverage, authority, maintainer), give the user the exact URLs to open, and say which figures you could not check live. Never invent figures.
-- **Route needs a credential or a local runtime:** this is a handoff, not a prerequisite. Tell the user what the source's *Handoff* line says, continue with public sources, and mark the affected figures "Can't verify". Ask before any download or local command.
+- **Route needs a sign-in or a local runtime:** this is a handoff, not a prerequisite. Tell the user what the source's *Handoff* line says, continue with public sources, and mark the affected figures "Can't verify". Ask before any download or local command.
 
-If the user needs an OSO or Karma credential, or asks how to get one, follow [references/credentials.md](references/credentials.md).
+If OSO or Karma needs a sign-in, or the user asks how to connect them, follow [references/credentials.md](references/credentials.md).
 
 ## Reconcile sources
 
@@ -44,6 +44,6 @@ If the user needs an OSO or Karma credential, or asks how to get one, follow [re
 ## Access boundaries
 
 - Karma GAP GET, Filecoin Data Portal files and filpgf.io pages are public.
-- OSO needs the user's own credentials (`OSO_TOKEN` or the client's OAuth sign-in) and is opt-in in this toolkit. Never ask the user to paste a token into the conversation. Point them to [references/credentials.md](references/credentials.md).
+- The `oso` and `karma` MCP servers need the user's own OAuth sign-in in their client. Never ask the user to paste a key or token into the conversation. Point them to [references/credentials.md](references/credentials.md).
 - Data workflows here are read-only. The feedback skill may post a public GitHub issue or comment only after the user approves the exact report.
 - Access to public guidance does not imply access to a team's private records. If something is private, link it and mark it PRIVATE instead of quoting it.

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Structural validation of build output without any agent CLI.
+// Structural validation of build output, without any agent CLI.
 // Usage: node scripts/validate-dist.mjs [dist]
 import fs from "node:fs";
 import path from "node:path";
@@ -7,149 +7,91 @@ import { fileURLToPath } from "node:url";
 import { listSkillDirs, validateSkillDir } from "./lib/skills.mjs";
 import { sha256 } from "./lib/imports.mjs";
 import { readZip, listFiles } from "./lib/zip.mjs";
-import { PORTABLE_MCP_SCHEMA, PORTABLE_PLUGIN_SCHEMA } from "./lib/adapters.mjs";
 import { isPluginName } from "./lib/manifest.mjs";
+import { marketplaceName, pluginPath } from "./lib/adapters.mjs";
 
-const PORTABLE_FIELDS = new Set(["$schema", "name", "version", "description", "author", "homepage", "repository", "license", "keywords", "extensions"]);
-// Header values must reference environment variables, never carry literal credentials.
-const ENV_HEADER_RE = /^(Bearer )?\$\{[A-Z_][A-Z0-9_]*\}$/;
+const ROOT_ENTRIES = [".agents", ".claude-plugin", "LICENSE", "README.md", "extensions", "package.json", "plugins"];
 
 export function validateDist(dist) {
   const errors = [];
   const err = (m) => errors.push(m);
-  const readJson = (f) => {
+  const stable = path.join(dist, "stable");
+  const readJson = (rel, base = stable) => {
     try {
-      return JSON.parse(fs.readFileSync(f, "utf8"));
+      return JSON.parse(fs.readFileSync(path.join(base, rel), "utf8"));
     } catch (e) {
-      err(`${path.relative(dist, f)}: ${e.message}`);
-      return null;
-    }
-  };
-  const info = readJson(path.join(dist, "build-info.json"));
-  if (!info) return errors;
-  const name = info.name;
-  if (info.router) return validateRouter(dist, info, errors);
-
-  const checkSkills = (root, expected) => {
-    const found = [];
-    for (const d of listSkillDirs(path.join(root, "skills"))) {
-      try {
-        found.push(validateSkillDir(d).name);
-      } catch (e) {
-        err(e.message);
-      }
-    }
-    if (JSON.stringify(found.sort()) !== JSON.stringify([...expected].sort())) err(`${path.relative(dist, root)}: skills ${found} != ${expected}`);
-    for (const s of info.skills.imported) {
-      const up = path.join(root, "skills", s, "UPSTREAM.json");
-      if (!fs.existsSync(up)) err(`${path.relative(dist, root)}: ${s} missing UPSTREAM.json`);
-      else {
-        const p = JSON.parse(fs.readFileSync(up, "utf8"));
-        if (!/^[0-9a-f]{40}$/.test(p.commit)) err(`${s}: provenance commit is not a full SHA`);
-        if (!fs.existsSync(path.join(root, "skills", s, p.licenseFile))) err(`${s}: license file missing`);
-      }
-    }
-    for (const d of listSkillDirs(path.join(root, "skills"))) checkLinks(dist, d, err);
-    if (!fs.existsSync(path.join(root, "THIRD_PARTY_NOTICES.md"))) err(`${path.relative(dist, root)}: THIRD_PARTY_NOTICES.md missing`);
-  };
-  const checkHeaders = (where, servers) => {
-    for (const [n, s] of Object.entries(servers ?? {})) {
-      for (const [h, v] of Object.entries(s.headers ?? {})) if (!ENV_HEADER_RE.test(v)) err(`${where}: ${n} header ${h} is not an environment reference`);
-      if (s.http_headers) err(`${where}: ${n} uses static http_headers`);
-      if (s.env) err(`${where}: ${n} sets env values`);
+      err(`${rel}: ${e.message}`);
+      return {};
     }
   };
 
-  // Portable Agent Plugins 1.0.0
-  const portable = path.join(dist, info.outputs["agent-plugin"]);
-  checkPortablePlugin(readJson(path.join(portable, "plugin.json")), err);
-  if (fs.existsSync(path.join(portable, ".mcp.json"))) err("portable output must use mcp.json, not .mcp.json");
-  if (fs.existsSync(path.join(portable, "mcp.json"))) {
-    const mj = readJson(path.join(portable, "mcp.json"));
-    if (mj) {
-      if (mj.$schema !== PORTABLE_MCP_SCHEMA) err("mcp.json: wrong $schema");
-      for (const k of Object.keys(mj)) if (!["$schema", "mcpServers"].includes(k)) err(`mcp.json: field ${k} not allowed`);
-      for (const [n, s] of Object.entries(mj.mcpServers ?? {})) {
-        if (!["stdio", "streamable-http", "sse"].includes(s.type)) err(`mcp.json: ${n} has invalid type ${s.type}`);
-        if (s.type !== "stdio") {
-          for (const k of Object.keys(s)) if (!["type", "url", "headers"].includes(k)) err(`mcp.json: ${n} field ${k} not allowed`);
-          const u = URL.canParse(s.url) ? new URL(s.url) : {};
-          if (u.protocol !== "https:" || u.username || u.hash) err(`mcp.json: ${n} url must be https without credentials or fragment`);
-          if (Object.keys(s.headers ?? {}).length) err(`mcp.json: ${n} headers are not allowed in this toolkit (no portable secret mechanism)`);
-        }
-      }
-    }
-  }
-  checkSkills(portable, info.skills.all);
+  // Marketplace root: only the files the build writes.
+  const pkg = readJson("package.json");
+  const { name, version } = pkg;
+  if (!isPluginName(name)) return [...errors, "package.json: invalid name"];
+  for (const f of fs.readdirSync(stable)) if (!ROOT_ENTRIES.includes(f)) err(`unexpected file at the marketplace root: ${f}`);
+  const plugin = path.join(stable, pluginPath({ name }));
 
-  // Claude Code
-  const claudeRoot = path.join(dist, info.outputs.claude);
-  const cm = readJson(path.join(claudeRoot, ".claude-plugin", "marketplace.json"));
-  for (const p of cm?.plugins ?? []) {
-    const dir = path.join(claudeRoot, p.source);
-    if (!dir.startsWith(claudeRoot + path.sep) || !fs.existsSync(path.join(dir, ".claude-plugin", "plugin.json"))) err(`claude marketplace: source ${p.source} invalid`);
-    else {
-      const cp = readJson(path.join(dir, ".claude-plugin", "plugin.json"));
-      if (cp?.name !== p.name) err("claude: marketplace and plugin names disagree");
-      checkSkills(dir, info.skills.all);
-      if (fs.existsSync(path.join(dir, ".mcp.json"))) checkHeaders("claude .mcp.json", readJson(path.join(dir, ".mcp.json"))?.mcpServers);
-    }
-  }
+  // Pi package.
+  if (!pkg.keywords?.includes("pi-package")) err("package.json: missing pi-package keyword");
+  for (const p of [...(pkg.pi?.skills ?? []), ...(pkg.pi?.extensions ?? [])]) if (!fs.existsSync(path.join(stable, p))) err(`package.json: ${p} missing`);
+  if (pkg.dependencies) err("package.json: the Pi package must not install dependencies");
+  const ext = fs.existsSync(path.join(stable, "extensions/filpgf-mcp.ts")) ? fs.readFileSync(path.join(stable, "extensions/filpgf-mcp.ts"), "utf8") : "";
+  if (!ext.includes(`../plugins/${name}/.mcp.json`)) err(`extensions/filpgf-mcp.ts must read plugins/${name}/.mcp.json`);
 
-  // Codex
-  const codexRoot = path.join(dist, info.outputs.codex);
-  const xm = readJson(path.join(codexRoot, ".agents", "plugins", "marketplace.json"));
-  for (const p of xm?.plugins ?? []) {
-    const dir = path.join(codexRoot, p.source?.path ?? "");
-    if (p.source?.source !== "local" || !p.source.path?.startsWith("./") || !dir.startsWith(codexRoot + path.sep)) err(`codex marketplace: bad source for ${p.name}`);
-    const xp = readJson(path.join(dir, ".codex-plugin", "plugin.json"));
-    if (!xp) continue;
-    if (xp.name !== p.name) err("codex: marketplace and plugin names disagree");
-    if (xp.skills !== "./skills/") err("codex: skills path must be ./skills/");
-    if (xp.mcpServers) {
-      const mcp = readJson(path.join(dir, xp.mcpServers));
-      checkHeaders("codex .mcp.json", mcp?.mcpServers);
-      for (const [n, s] of Object.entries(mcp?.mcpServers ?? {})) if (s.headers) err(`codex .mcp.json: ${n} uses headers; Codex needs bearer_token_env_var or env_http_headers`);
-    }
-    checkSkills(dir, info.skills.all);
+  // Marketplace indexes point at the plugin folder, at the same version.
+  const cm = readJson(".claude-plugin/marketplace.json");
+  const xm = readJson(".agents/plugins/marketplace.json");
+  if (cm.name !== marketplaceName({ name }) || xm.name !== cm.name) err("marketplace names must be <name>-marketplace");
+  if (cm.plugins?.length !== 1 || cm.plugins[0].name !== name || cm.plugins[0].source !== pluginPath({ name }) || cm.plugins[0].version !== version) err("claude marketplace must list exactly this plugin and version");
+  if (xm.plugins?.length !== 1 || xm.plugins[0].name !== name || xm.plugins[0].source?.source !== "local" || xm.plugins[0].source?.path !== pluginPath({ name })) err("codex marketplace must list exactly this plugin");
+
+  // Plugin manifests.
+  const cp = readJson(".claude-plugin/plugin.json", plugin);
+  const xp = readJson(".codex-plugin/plugin.json", plugin);
+  for (const [label, p] of [["claude", cp], ["codex", xp]]) if (p.name !== name || p.version !== version) err(`${label} plugin.json: name/version disagree with package.json`);
+  if (xp.skills !== "./skills/") err("codex plugin.json: skills path must be ./skills/");
+  if (xp.mcpServers !== "./.mcp.json") err("codex plugin.json: mcpServers must be ./.mcp.json");
+
+  // MCP servers: https URLs only, never headers, env values or other credentials.
+  for (const [n, s] of Object.entries(readJson(".mcp.json", plugin).mcpServers ?? {})) {
+    for (const k of Object.keys(s)) if (!["type", "url", "enabled_tools"].includes(k)) err(`.mcp.json: ${n} field ${k} not allowed (servers use client OAuth)`);
+    const u = URL.canParse(s.url) ? new URL(s.url) : {};
+    if (s.type !== "http" || u.protocol !== "https:" || u.username || u.password || u.hash) err(`.mcp.json: ${n} must be an https http server without credentials`);
   }
 
-  // Pi
-  const pi = path.join(dist, info.outputs.pi);
-  const pp = readJson(path.join(pi, "package.json"));
-  if (pp) {
-    if (!pp.keywords?.includes("pi-package")) err("pi package.json: missing pi-package keyword");
-    for (const p of [...(pp.pi?.skills ?? []), ...(pp.pi?.extensions ?? [])]) if (!fs.existsSync(path.join(pi, p))) err(`pi package.json: ${p} missing`);
-    if (pp.dependencies?.["@earendil-works/pi-coding-agent"]) err("pi package.json: host package must be a peer dependency");
+  // Skills, provenance and links.
+  const found = [];
+  for (const d of listSkillDirs(path.join(plugin, "skills"))) {
+    try {
+      found.push(validateSkillDir(d).name);
+    } catch (e) {
+      err(e.message);
+      continue;
+    }
+    const up = path.join(d, "UPSTREAM.json");
+    if (fs.existsSync(up)) {
+      const p = JSON.parse(fs.readFileSync(up, "utf8"));
+      if (!/^[0-9a-f]{40}$/.test(p.commit)) err(`${path.basename(d)}: provenance commit is not a full SHA`);
+      if (!fs.existsSync(path.join(d, p.licenseFile ?? "LICENSE"))) err(`${path.basename(d)}: license file missing`);
+    }
+    checkLinks(dist, d, err);
   }
-  checkSkills(pi, info.skills.all);
+  if (!found.includes(name)) err(`skill ${name} missing`);
+  if (!fs.existsSync(path.join(plugin, "THIRD_PARTY_NOTICES.md"))) err("THIRD_PARTY_NOTICES.md missing");
 
-  // Packages and checksums
-  const pkg = path.join(dist, "packages");
-  if (fs.existsSync(pkg)) {
-    const sums = fs.readFileSync(path.join(pkg, "SHA256SUMS"), "utf8").trim().split("\n");
-    for (const line of sums) {
-      const [h, f] = line.split(/\s+/);
-      if (sha256(fs.readFileSync(path.join(pkg, f))) !== h) err(`SHA256SUMS mismatch for ${f}`);
-    }
-    const zip = path.join(pkg, `${name}-${info.version}-agent-plugin.zip`);
-    if (fs.existsSync(zip)) {
-      const entries = [...readZip(zip).keys()].sort();
-      const expected = listFiles(portable).map((f) => `${name}/${f}`);
-      if (JSON.stringify(entries) !== JSON.stringify(expected)) err("agent-plugin zip contents differ from directory");
-    }
+  // ZIP and checksums.
+  const packages = path.join(dist, "packages");
+  const sums = fs.existsSync(path.join(packages, "SHA256SUMS")) ? fs.readFileSync(path.join(packages, "SHA256SUMS"), "utf8").trim().split("\n") : [];
+  if (!sums.length) err("packages/SHA256SUMS missing");
+  for (const line of sums) {
+    const [h, f] = line.split(/\s+/);
+    if (!fs.existsSync(path.join(packages, f)) || sha256(fs.readFileSync(path.join(packages, f))) !== h) err(`SHA256SUMS mismatch for ${f}`);
   }
+  const zip = path.join(packages, `${name}-${version}.zip`);
+  if (!fs.existsSync(zip)) err(`packages/${name}-${version}.zip missing`);
+  else if (JSON.stringify([...readZip(zip).keys()].sort()) !== JSON.stringify(listFiles(plugin).map((f) => `${name}/${f}`))) err("plugin ZIP contents differ from the plugin folder");
   return errors;
-}
-
-/** Agent Plugins 1.0.0 plugin.json field checks. */
-function checkPortablePlugin(pj, err) {
-  if (!pj) return;
-  if (pj.$schema !== PORTABLE_PLUGIN_SCHEMA) err("plugin.json: wrong $schema");
-  if (!isPluginName(pj.name)) err("plugin.json: invalid name");
-  for (const k of Object.keys(pj)) if (!PORTABLE_FIELDS.has(k)) err(`plugin.json: field ${k} not allowed by Agent Plugins 1.0.0`);
-  if (pj.author) for (const k of Object.keys(pj.author)) if (!["name", "email", "url"].includes(k)) err(`plugin.json: author.${k} not allowed`);
-  for (const [ns, v] of Object.entries(pj.extensions ?? {})) if (!/^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(ns) || typeof v !== "object") err(`plugin.json: bad extension namespace ${ns}`);
 }
 
 /** Relative Markdown links in a skill must resolve to files inside that skill. */
@@ -162,33 +104,6 @@ function checkLinks(dist, d, err) {
       if (target.startsWith("/") || !resolved.startsWith(d + path.sep) || !fs.existsSync(resolved)) err(`${path.relative(dist, path.join(d, f))}: broken or escaping link ${target}`);
     }
   }
-}
-
-/** Validate a --router-only build: one portable plugin holding only the router skill; no MCP, imports or runtime requirements. */
-function validateRouter(dist, info, errors) {
-  const err = (m) => errors.push(m);
-  const dir = path.join(dist, info.outputs?.router ?? "");
-  const name = info.skills?.all?.[0];
-  if (!info.outputs?.router || !fs.existsSync(path.join(dir, "plugin.json"))) return err("router: plugin directory missing"), errors;
-  if (info.mcpServers?.length || info.imports?.length || info.skills?.imported?.length || info.skills?.all?.length !== 1) err("router: build must hold only the router skill, without MCP servers or imports");
-  checkPortablePlugin(JSON.parse(fs.readFileSync(path.join(dir, "plugin.json"), "utf8")), err);
-  const skill = path.join(dir, "skills", name ?? "");
-  try {
-    if (validateSkillDir(skill).frontmatter.compatibility) err("router: SKILL.md must not declare runtime requirements (compatibility)");
-    checkLinks(dist, skill, err);
-  } catch (e) {
-    err(e.message);
-  }
-  // Only the manifest, license and the router skill's Markdown. Nothing executable, no mcp.json or host adapters.
-  const allowed = new RegExp(`^(plugin\\.json|LICENSE|skills/${name}/(SKILL\\.md|references/[a-z0-9-]+\\.md))$`);
-  const files = listFiles(dir);
-  for (const f of files) if (!allowed.test(f)) err(`router: unexpected file ${f}`);
-  for (const [file, hash] of Object.entries(info.artifacts ?? {})) {
-    const p = path.join(dist, "packages", file);
-    if (!fs.existsSync(p) || sha256(fs.readFileSync(p)) !== hash) err(`router: ${file} missing or checksum mismatch`);
-    else if (JSON.stringify([...readZip(p).keys()].sort()) !== JSON.stringify(files)) err(`router: ${file} contents differ from directory`);
-  }
-  return errors;
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

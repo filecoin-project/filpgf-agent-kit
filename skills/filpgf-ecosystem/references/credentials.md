@@ -1,53 +1,43 @@
-# Get OSO and Karma credentials
+# Sign in to OSO and Karma
 
-Most FilPGF work needs no credentials. These sources are public and keyless:
+Most FilPGF work needs no account. These sources are public:
 
 - filpgf.io pages and llms.txt
 - Karma GAP API GET requests, used by `filpgf-read-karma` and `filpgf-review-work`
 - Filecoin Data Portal files, used by `fdp`
 - Filoscope, used by `filoscope`
 
-Only OSO metrics need a credential. The Karma MCP server also needs one, but this toolkit does not include it.
+The plugin also includes two MCP servers: `oso` (https://mcp.oso.xyz/mcp) and `karma` (https://api.karmahq.org/mcp). They carry no keys. The client signs the user in with OAuth the first time a server is used, then stores and refreshes the token itself.
 
 ## Rules for agents
 
-- Never ask the user to paste a key into the conversation. Tell them where to create the key and where to store it.
-- The user stores the key in the environment that starts the agent, or signs in through the client's connector settings.
+- Never ask the user to paste a key or token into the conversation, and never ask them to create an API key for this plugin.
+- If a server needs sign-in, tell the user the command for their client below and continue with public sources. In a review, mark the affected figures "Can't verify".
 - Do not run setup tools that create wallets or keys, such as the `setup-agent` skill from `show-karma/skills`.
-- If a credential is missing, name the missing credential, point the user to this page, and continue with public sources. In a review, mark the affected figures "Can't verify".
 
-## Create an OSO API key
+## Sign in
 
-An OSO (Artio) API key gives full access to the data your organization can read. It is not a read-only key. Create it in an organization that has only the access you need.
+| Client | How |
+|---|---|
+| Claude Code | Run `/mcp`, select `plugin:filpgf-ecosystem:oso` or `plugin:filpgf-ecosystem:karma`, then **Authenticate**. |
+| Codex | Run `codex mcp login oso` or `codex mcp login karma` in a terminal. |
+| Pi | Run `/mcp login oso` or `/mcp login karma` in a session. |
+| Claude chat | Use the OSO connector at https://claude.ai/directory/oso, or add a custom connector with the server URL. |
 
-1. Sign in at https://www.artio.so/login.
-2. Open your organization's **Settings**, then **API Keys**.
-3. Select **New Key**, then create the key.
-4. Copy the key and save it in your password manager. Artio shows the key only once.
-5. Set the key as the `OSO_TOKEN` environment variable in the shell or service that starts the agent.
+The browser opens the provider's sign-in page. Approve only the organization and access you need: OSO and Karma can also offer write tools, and the plugin's skills only read.
 
-Queries on `filecoin.filpgf_public` tables also need your organization to have access to that dataset. It is not in the OSO marketplace, so you cannot subscribe to it yourself: the `filecoin` organization shares it with named organizations. Ask for a share before you use the OSO metrics skill.
+If you already connected OSO or Karma in your client under another name, you can keep that connection and disable the plugin's copy in the client's MCP settings.
+
+## OSO (Artio)
+
+- Sign in with your Artio account. An owner or admin of the Artio organization may need to approve the connection.
+- Queries on `filecoin.filpgf_public` tables also need your organization to have access to that dataset. It is not in the OSO marketplace, so you cannot subscribe to it yourself: the `filecoin` organization shares it with named organizations. Ask for a share before you use the OSO metrics skill.
+- OSO also documents the newer endpoint `https://mcp.artio.so/mcp`. The plugin uses `https://mcp.oso.xyz/mcp` because filpgf.io/llms.txt names it. Both work.
 
 Docs: https://docs.opensource.observer/docs/mcp.md
 
-## Connect OSO in Claude chat
+## Karma
 
-To use OSO in Claude chat, connect it with OAuth instead of an API key. You must be an owner or admin of an Artio organization.
-
-1. Open the OSO connector in the Claude directory: https://claude.ai/directory/oso.
-2. Connect it and approve access for your Artio organization.
-
-If the directory connector is not available to you, add a custom connector with the URL `https://mcp.artio.so/mcp`. Leave the client ID and client secret blank.
-
-The older endpoint `https://mcp.oso.xyz/mcp` still works. The toolkit's opt-in OSO build uses that endpoint because filpgf.io/llms.txt names it.
-
-## Connect the Karma MCP server
-
-You do not need this for reading programs, grants, milestones, or payouts. The public GAP API covers those reads without a key.
-
-If you connect the Karma MCP server (`https://api.karmahq.org/mcp`) yourself:
-
-- In an interactive client, sign in with OAuth through the client's connector settings. This is the preferred option.
-- Otherwise, generate a scoped API key in your Karma settings and give it the narrowest scope that works. Clients send the key in the `x-api-key` header. Locally, store it as `KARMA_API_KEY`.
+You do not need Karma's MCP server to read programs, grants, milestones, or payouts. The public GAP API covers those reads without an account.
 
 Docs: https://www.karmahq.org/mcp/connect and https://www.karmahq.org/for-agents

@@ -36,18 +36,14 @@ jobs:
         run: npm run build
       - name: Validate build output
         run: npm run validate
-      - name: Opt-in OSO variant builds and validates
-        run: |
-          node scripts/build.mjs --out .cache/dist-oso --no-packages --enable-mcp oso
-          node scripts/validate-dist.mjs .cache/dist-oso
       - name: Build is reproducible
         run: |
           cp dist/packages/SHA256SUMS /tmp/first.sums
           npm run build
-          diff <(grep -v '\.tgz$' /tmp/first.sums) <(grep -v '\.tgz$' dist/packages/SHA256SUMS)
+          diff /tmp/first.sums dist/packages/SHA256SUMS
       - name: Upload packaged artifacts
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: filpgf-ecosystem-packages
+          name: filpgf-ecosystem
           path: dist/packages/
           if-no-files-found: error

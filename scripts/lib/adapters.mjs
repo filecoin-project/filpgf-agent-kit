@@ -1,10 +1,9 @@
-// Map the toolkit manifest to each output format.
-// Keep each client's manifest and MCP configuration separate.
+// Map toolkit.json to the files each client reads. One plugin folder serves
+// every client: Claude Code reads .claude-plugin/, Codex and ChatGPT read
+// .codex-plugin/, both read the shared .mcp.json, and Pi reads the package.json
+// at the marketplace root.
 import fs from "node:fs";
 import path from "node:path";
-
-export const PORTABLE_PLUGIN_SCHEMA = "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json";
-export const PORTABLE_MCP_SCHEMA = "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json";
 
 const json = (v) => JSON.stringify(v, null, 2) + "\n";
 const metadata = (m) => {
@@ -14,83 +13,24 @@ const metadata = (m) => {
   if (m.keywords?.length) out.keywords = m.keywords;
   return out;
 };
+export const marketplaceName = (m) => `${m.name}-marketplace`;
+export const pluginPath = (m) => `./plugins/${m.name}`;
 
-// ---- MCP mappings -------------------------------------------------------
-
-/** Agent Plugins 1.0.0 mcp.json: no env expansion in headers, so auth is client-managed. */
-export function portableMcp(m) {
-  const servers = {};
-  for (const [name, s] of Object.entries(m.mcpServers ?? {})) servers[name] = { type: "streamable-http", url: s.url };
-  return { $schema: PORTABLE_MCP_SCHEMA, mcpServers: servers };
-}
-
-/** Claude Code .mcp.json: `${VAR}` expansion is supported in headers. */
-export function claudeMcp(m) {
+/**
+ * Shared .mcp.json. Servers have no headers: each client runs the MCP OAuth
+ * sign-in itself. `enabled_tools` is applied by Codex and ignored by Claude Code.
+ */
+export function mcpJson(m) {
   const servers = {};
   for (const [name, s] of Object.entries(m.mcpServers ?? {})) {
-    const entry = { type: "http", url: s.url };
-    const h = authHeaders(s.auth);
-    if (h) entry.headers = h;
-    servers[name] = entry;
+    servers[name] = { type: "http", url: s.url };
+    if (s.allowedTools) servers[name].enabled_tools = [...s.allowedTools];
   }
   return { mcpServers: servers };
-}
-
-/** Codex compatibility .mcp.json: env auth via bearer_token_env_var / env_http_headers (no `${VAR}`). */
-export function codexMcp(m) {
-  const servers = {};
-  for (const [name, s] of Object.entries(m.mcpServers ?? {})) {
-    const entry = { type: "http", url: s.url };
-    if (s.auth?.scheme === "bearer") entry.bearer_token_env_var = s.auth.env;
-    else if (s.auth?.scheme === "header") entry.env_http_headers = { [s.auth.header]: s.auth.env };
-    if (s.allowedTools) entry.enabled_tools = [...s.allowedTools];
-    servers[name] = entry;
-  }
-  return { mcpServers: servers };
-}
-
-/** Pi registerMcpServer configs; headers use `${VAR}`, which Pi expands. */
-export function piServers(m) {
-  return Object.entries(m.mcpServers ?? {}).map(([name, s]) => {
-    const config = { url: s.url };
-    if (s.description) config.description = s.description;
-    const h = authHeaders(s.auth);
-    if (h) config.headers = h;
-    if (s.allowedTools) {
-      // Configure Pi to hide every tool except the named ones, which stay reachable from codemode.
-      // This filters by tool name only; it says nothing about what an allowed tool can do.
-      config.exposure = "hidden";
-      config.toolExposure = Object.fromEntries(s.allowedTools.map((t) => [t, "codemode"]));
-    }
-    return { name, requiresEnv: s.auth ? [s.auth.env] : [], config };
-  });
-}
-
-function authHeaders(auth) {
-  if (!auth) return null;
-  if (auth.scheme === "bearer") return { Authorization: `Bearer \${${auth.env}}` };
-  return { [auth.header]: `\${${auth.env}}` };
-}
-
-// ---- Plugin manifests ----------------------------------------------------
-
-export function portablePlugin(m) {
-  const out = { $schema: PORTABLE_PLUGIN_SCHEMA, ...metadata(m) };
-  if (m.interface) out.extensions = { "com.openai": { interface: m.interface } };
-  return out;
 }
 
 export function claudePlugin(m) {
   return metadata(m);
-}
-
-export function claudeMarketplace(m) {
-  return {
-    name: `${m.name}-marketplace`,
-    description: `Marketplace for ${m.name}: ${m.description}`,
-    owner: { name: m.author?.name ?? m.name },
-    plugins: [{ name: m.name, source: `./plugins/${m.name}`, description: m.description, version: m.version }],
-  };
 }
 
 export function codexPlugin(m) {
@@ -100,14 +40,23 @@ export function codexPlugin(m) {
   return out;
 }
 
+export function claudeMarketplace(m) {
+  return {
+    name: marketplaceName(m),
+    description: m.description,
+    owner: { name: m.author?.name ?? m.name },
+    plugins: [{ name: m.name, source: pluginPath(m), description: m.description, version: m.version, author: m.author }],
+  };
+}
+
 export function codexMarketplace(m) {
   return {
-    name: `${m.name}-marketplace`,
+    name: marketplaceName(m),
     interface: { displayName: m.interface?.displayName ?? m.name },
     plugins: [
       {
         name: m.name,
-        source: { source: "local", path: `./plugins/${m.name}` },
+        source: { source: "local", path: pluginPath(m) },
         policy: { installation: "AVAILABLE", authentication: "ON_INSTALL" },
         category: m.interface?.category ?? "Productivity",
       },
@@ -115,8 +64,8 @@ export function codexMarketplace(m) {
   };
 }
 
+/** Pi package manifest at the marketplace root, so `pi install git:<repo>@stable` works. */
 export function piPackageJson(m) {
-  const ext = Object.keys(m.mcpServers ?? {}).length > 0;
   return {
     name: m.name,
     version: m.version,
@@ -125,23 +74,14 @@ export function piPackageJson(m) {
     type: "module",
     keywords: ["pi-package", ...(m.keywords ?? [])],
     ...(m.repository ? { repository: m.repository } : {}),
-    files: ["skills", ...(ext ? ["extensions"] : []), "README.md", "LICENSE", "THIRD_PARTY_NOTICES.md"],
-    pi: { skills: ["./skills"], ...(ext ? { extensions: ["./extensions"] } : {}) },
+    pi: { skills: [`${pluginPath(m)}/skills`], extensions: ["./extensions"] },
     peerDependencies: { "@earendil-works/pi-coding-agent": "*" },
   };
 }
 
-export function piExtensionSource(template, m) {
-  const marker = "/*SERVERS*/ []";
-  if (!template.includes(marker)) throw new Error("Pi extension template is missing the /*SERVERS*/ marker");
-  return template.replace(marker, JSON.stringify(piServers(m), null, 2));
-}
-
-// ---- Writers ---------------------------------------------------------------
-
 export function write(file, content) {
   fs.mkdirSync(path.dirname(file), { recursive: true });
-  fs.writeFileSync(file, typeof content === "string" ? content : json(content));
+  fs.writeFileSync(file, typeof content === "string" || Buffer.isBuffer(content) ? content : json(content));
 }
 
 export function copyDir(src, dest) {

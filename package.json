@@ -1,8 +1,8 @@
 {
   "name": "filpgf-agent-kit",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "private": true,
-  "description": "Builds the FilPGF ecosystem agent plugin: portable Agent Plugins output plus Claude Code, Codex and Pi adapters.",
+  "description": "Builds the FilPGF Agent Kit plugin and the stable marketplace branch for Claude Code, Codex, Pi and other agent clients.",
   "license": "MIT",
   "type": "module",
   "engines": {
@@ -11,13 +11,11 @@
   "scripts": {
     "build": "node scripts/build.mjs",
     "build:offline": "node scripts/build.mjs --no-imports",
-    "build:router": "node scripts/build.mjs --router-only --out .cache/dist-router && node scripts/validate-dist.mjs .cache/dist-router",
     "validate": "node scripts/validate-dist.mjs",
     "test": "node --test \"tests/*.test.mjs\"",
+    "smoke": "sh scripts/smoke.sh",
     "imports:pin": "node scripts/pin-imports.mjs",
     "imports:check": "node scripts/pin-imports.mjs --check",
-    "smoke": "sh scripts/smoke-cli.sh",
-    "build:with-oso": "node scripts/build.mjs --enable-mcp oso",
     "imports:update": "node scripts/update-imports.mjs"
   }
 }

@@ -1,19 +1,19 @@
 #!/usr/bin/env node
-// Build portable and host-specific plugin outputs from toolkit.json, skills/
-// and imports.lock.json.
+// Build the stable marketplace tree and the plugin ZIP from toolkit.json,
+// skills/ and imports.lock.json.
 //
-// Usage: node scripts/build.mjs [--out dist] [--no-imports] [--no-packages] [--enable-mcp NAME]...
-//                               [--manifest toolkit.json] [--lock imports.lock.json]
-//        node scripts/build.mjs --router-only [--out .cache/dist-router]
+// Usage: node scripts/build.mjs [--out dist] [--no-imports] [--root DIR]
 //
-// --router-only builds one portable Agent Plugins ZIP holding only the router
-// skill named in toolkit.json (router.skill) and its references. No imports,
-// MCP servers or host adapters. It writes to its own directory so the default
-// and router builds never delete each other.
+//   dist/stable/                       exact content of the `stable` branch
+//     .claude-plugin/marketplace.json  Claude Code, VS Code
+//     .agents/plugins/marketplace.json Codex, ChatGPT
+//     package.json, extensions/        Pi (`pi install git:...@stable`)
+//     plugins/<name>/                  the plugin every client installs
+//   dist/packages/<name>-<version>.zip the plugin folder, for clients that upload a ZIP
+//   dist/packages/SHA256SUMS
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { execFileSync } from "node:child_process";
 import { loadManifest } from "./lib/manifest.mjs";
 import { loadLock, materializeImport, sha256 } from "./lib/imports.mjs";
 import { listSkillDirs, validateSkillDir } from "./lib/skills.mjs";
@@ -21,212 +21,88 @@ import { listFiles, zipDirectory } from "./lib/zip.mjs";
 import * as A from "./lib/adapters.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const REPO = "filecoin-project/filpgf-agent-kit";
 
 export function parseArgs(argv) {
-  const opts = { root: ROOT, out: "dist", imports: true, packages: true, manifest: "toolkit.json", lock: "imports.lock.json", skills: "skills", cache: ".cache/imports", enableMcp: [], routerOnly: false };
-  let outSet = false;
+  const opts = { root: ROOT, out: "dist", imports: true };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === "--no-imports") opts.imports = false;
-    else if (a === "--no-packages") opts.packages = false;
-    else if (a === "--enable-mcp") opts.enableMcp.push(argv[++i]);
-    else if (a === "--router-only") opts.routerOnly = true;
-    else if (["--out", "--manifest", "--lock", "--skills", "--cache", "--root"].includes(a)) {
-      opts[a.slice(2)] = argv[++i];
-      if (a === "--out") outSet = true;
-    } else throw new Error(`unknown argument ${a}`);
+    else if (a === "--out" || a === "--root") opts[a.slice(2)] = argv[++i];
+    else throw new Error(`unknown argument ${a}`);
   }
-  if (opts.routerOnly && !outSet) opts.out = path.join(".cache", "dist-router");
   return opts;
 }
 
-export function build(opts) {
-  const r = (p) => path.resolve(opts.root, p);
-  const out = r(opts.out);
-  if (out === path.resolve(opts.root) || !out.startsWith(path.resolve(opts.root) + path.sep)) throw new Error(`--out must be a subdirectory of ${opts.root}`);
-  const fullManifest = loadManifest(r(opts.manifest));
+export function build({ root = ROOT, out: outArg = "dist", imports = true } = {}) {
+  const r = (p) => path.resolve(root, p);
+  const out = r(outArg);
+  if (!out.startsWith(path.resolve(root) + path.sep)) throw new Error(`--out must be a subdirectory of ${root}`);
+  // Only replace an empty directory or a previous build, so a typo such as `--out skills` cannot wipe sources.
+  if (fs.existsSync(out) && fs.readdirSync(out).length && !fs.existsSync(path.join(out, "stable"))) throw new Error(`--out ${outArg} exists and is not a previous build output`);
+  const m = loadManifest(r("toolkit.json"));
   const warnings = [];
-  // Opt-in MCP servers (credentials, write-capable tools) are left out unless enabled explicitly.
-  const enable = opts.enableMcp ?? [];
-  const routerOnly = Boolean(opts.routerOnly);
-  if (routerOnly && enable.length) throw new Error("--router-only builds carry no MCP servers; drop --enable-mcp");
-  const routerSkill = fullManifest.router?.skill ?? "filpgf-ecosystem";
-  for (const n of enable) if (!fullManifest.mcpServers?.[n]) throw new Error(`--enable-mcp ${n}: no such server in the manifest`);
-  const mcpServers = routerOnly ? {} : Object.fromEntries(Object.entries(fullManifest.mcpServers ?? {}).filter(([n, s]) => !s.optIn || enable.includes(n)));
-  if (!routerOnly) for (const n of Object.keys(fullManifest.mcpServers ?? {})) if (!mcpServers[n]) warnings.push(`opt-in MCP server ${n} not included (use --enable-mcp ${n})`);
-  const manifest = { ...fullManifest, mcpServers };
-
-  // Only ever delete an empty directory or a previous build output, so a typo such as `--out skills` cannot wipe sources.
-  if (fs.existsSync(out) && fs.readdirSync(out).length && !fs.existsSync(path.join(out, "build-info.json")) && !fs.existsSync(path.join(out, ".stage"))) {
-    throw new Error(`--out ${opts.out} exists and is not a previous build output; remove it yourself or choose another directory`);
-  }
   fs.rmSync(out, { recursive: true, force: true });
-  const stage = path.join(out, ".stage");
-  const stageSkills = path.join(stage, "skills");
-  fs.mkdirSync(stageSkills, { recursive: true });
 
-  // 1. Native skills.
+  const stable = path.join(out, "stable");
+  const plugin = path.join(stable, "plugins", m.name);
+  const skillsDir = path.join(plugin, "skills");
+  fs.mkdirSync(skillsDir, { recursive: true });
+
+  // 1. Native skills, with the source map generated from toolkit.json.
   const native = [];
-  for (const dir of listSkillDirs(r(opts.skills))) {
+  for (const dir of listSkillDirs(r("skills"))) {
     const { name } = validateSkillDir(dir);
-    if (routerOnly && name !== routerSkill) continue;
     listFiles(dir); // throws on symlinks and other non-regular files
-    A.copyDir(dir, path.join(stageSkills, name));
+    A.copyDir(dir, path.join(skillsDir, name));
     native.push(name);
   }
-  const sourcesRef = path.join(stageSkills, "filpgf-ecosystem", "references", "sources.md");
-  if (fs.existsSync(path.dirname(path.dirname(sourcesRef)))) A.write(sourcesRef, renderSources(manifest));
-  if (routerOnly) return buildRouter({ manifest, out, stage, skillDir: path.join(stageSkills, routerSkill), name: routerSkill, packages: opts.packages, license: fs.existsSync(r("LICENSE")) ? fs.readFileSync(r("LICENSE")) : null });
+  const sourcesRef = path.join(skillsDir, "filpgf-ecosystem", "references", "sources.md");
+  if (fs.existsSync(sourcesRef)) A.write(sourcesRef, renderSources(m));
 
-  // 2. Pinned upstream imports.
+  // 2. Pinned upstream skills.
   const provenance = [];
-  if (opts.imports) {
-    const lock = loadLock(r(opts.lock));
-    for (const entry of lock.imports) {
+  if (imports) {
+    for (const entry of loadLock(r("imports.lock.json")).imports) {
       if (native.includes(entry.skill)) throw new Error(`import ${entry.skill} collides with a native skill`);
-      provenance.push(materializeImport(entry, stageSkills, r(opts.cache)));
+      provenance.push(materializeImport(entry, skillsDir, r(".cache/imports")));
     }
-  } else {
-    warnings.push("upstream imports skipped (--no-imports)");
-  }
+  } else warnings.push("upstream imports skipped (--no-imports)");
+  const skills = listSkillDirs(skillsDir).map((d) => validateSkillDir(d).name);
+  for (const s of m.sources ?? []) for (const k of s.skills ?? []) if (!skills.includes(k)) warnings.push(`source ${s.id} names skill ${k}, which is not in this build`);
 
-  // 3. Validate the final skill set and cross references.
-  const skills = listSkillDirs(stageSkills).map((d) => validateSkillDir(d).name);
-  for (const s of manifest.sources ?? []) for (const k of s.skills ?? []) if (!skills.includes(k)) warnings.push(`source ${s.id} names skill ${k}, which is not in this build`);
-  for (const [name, s] of Object.entries(manifest.mcpServers ?? {})) {
-    if (s.auth) warnings.push(`portable mcp.json cannot carry credentials: server ${name} needs ${s.auth.env} or client-managed auth`);
-    if (s.allowedTools) warnings.push(`tool-name allowlist for ${name} is configured only in the Codex (enabled_tools) and Pi (toolExposure) outputs; portable and Claude outputs expose every server tool. Allowlisted names are not proof of read-only access: use a least-privilege credential`);
-  }
-
+  // 3. Plugin folder, shared by every client.
   const license = fs.existsSync(r("LICENSE")) ? fs.readFileSync(r("LICENSE")) : null;
-  const notices = renderNotices(manifest, provenance);
-  const common = (dir, host) => {
-    A.copyDir(stageSkills, path.join(dir, "skills"));
-    A.write(path.join(dir, "README.md"), renderReadme(manifest, host, skills));
-    A.write(path.join(dir, "THIRD_PARTY_NOTICES.md"), notices);
-    if (license) A.write(path.join(dir, "LICENSE"), license);
-  };
-  const hasMcp = Object.keys(manifest.mcpServers ?? {}).length > 0;
+  A.write(path.join(plugin, ".claude-plugin", "plugin.json"), A.claudePlugin(m));
+  A.write(path.join(plugin, ".codex-plugin", "plugin.json"), A.codexPlugin(m));
+  A.write(path.join(plugin, ".mcp.json"), A.mcpJson(m));
+  A.write(path.join(plugin, "README.md"), renderPluginReadme(m, skills));
+  A.write(path.join(plugin, "THIRD_PARTY_NOTICES.md"), renderNotices(m, provenance));
+  if (license) A.write(path.join(plugin, "LICENSE"), license);
 
-  // 4a. Portable Agent Plugins 1.0.0.
-  const portable = path.join(out, "agent-plugin", manifest.name);
-  common(portable, "portable");
-  A.write(path.join(portable, "plugin.json"), A.portablePlugin(manifest));
-  if (hasMcp) A.write(path.join(portable, "mcp.json"), A.portableMcp(manifest));
+  // 4. Marketplace root: indexes for Claude Code and Codex, the Pi package, and a README.
+  A.write(path.join(stable, ".claude-plugin", "marketplace.json"), A.claudeMarketplace(m));
+  A.write(path.join(stable, ".agents", "plugins", "marketplace.json"), A.codexMarketplace(m));
+  A.write(path.join(stable, "package.json"), A.piPackageJson(m));
+  fs.mkdirSync(path.join(stable, "extensions"));
+  fs.copyFileSync(path.join(ROOT, "adapters", "pi", "extension.ts"), path.join(stable, "extensions", "filpgf-mcp.ts"));
+  A.write(path.join(stable, "README.md"), renderStableReadme(m));
+  if (license) A.write(path.join(stable, "LICENSE"), license);
 
-  // 4b. Claude Code plugin inside a local marketplace root.
-  const claudeRoot = path.join(out, "claude");
-  const claude = path.join(claudeRoot, "plugins", manifest.name);
-  common(claude, "claude");
-  A.write(path.join(claude, ".claude-plugin", "plugin.json"), A.claudePlugin(manifest));
-  if (hasMcp) A.write(path.join(claude, ".mcp.json"), A.claudeMcp(manifest));
-  A.write(path.join(claudeRoot, ".claude-plugin", "marketplace.json"), A.claudeMarketplace(manifest));
+  // 5. ZIP of the plugin folder and checksums.
+  const pkg = path.join(out, "packages");
+  const zip = `${m.name}-${m.version}.zip`;
+  zipDirectory(plugin, path.join(pkg, zip), m.name);
+  A.write(path.join(pkg, "SHA256SUMS"), `${sha256(fs.readFileSync(path.join(pkg, zip)))}  ${zip}\n`);
 
-  // 4c. Codex compatibility plugin inside a local marketplace root.
-  const codexRoot = path.join(out, "codex");
-  const codex = path.join(codexRoot, "plugins", manifest.name);
-  common(codex, "codex");
-  A.write(path.join(codex, ".codex-plugin", "plugin.json"), A.codexPlugin(manifest));
-  if (hasMcp) A.write(path.join(codex, ".mcp.json"), A.codexMcp(manifest));
-  A.write(path.join(codexRoot, ".agents", "plugins", "marketplace.json"), A.codexMarketplace(manifest));
-
-  // 4d. Pi package.
-  const pi = path.join(out, "pi", manifest.name);
-  common(pi, "pi");
-  A.write(path.join(pi, "package.json"), A.piPackageJson(manifest));
-  if (hasMcp) {
-    const template = fs.readFileSync(path.join(ROOT, "adapters", "pi", "extension.ts"), "utf8");
-    A.write(path.join(pi, "extensions", "filpgf-mcp.ts"), A.piExtensionSource(template, manifest));
-  }
-
-  fs.rmSync(stage, { recursive: true, force: true });
-
-  // 5. Packaged artifacts and checksums.
-  const artifacts = {};
-  if (opts.packages) {
-    const pkg = path.join(out, "packages");
-    const v = manifest.version;
-    const zips = {
-      [`${manifest.name}-${v}-agent-plugin.zip`]: [portable, manifest.name],
-      [`${manifest.name}-${v}-claude-plugin.zip`]: [claude, manifest.name],
-      [`${manifest.name}-${v}-claude-marketplace.zip`]: [claudeRoot, `${manifest.name}-claude-marketplace`],
-      [`${manifest.name}-${v}-codex-marketplace.zip`]: [codexRoot, `${manifest.name}-codex-marketplace`],
-      [`${manifest.name}-${v}-pi-package.zip`]: [pi, manifest.name],
-    };
-    for (const [file, [dir, prefix]] of Object.entries(zips)) zipDirectory(dir, path.join(pkg, file), prefix);
-    try {
-      const res = execFileSync("npm", ["pack", "--ignore-scripts", "--json", "--pack-destination", pkg], {
-        cwd: pi,
-        env: { ...process.env, npm_config_cache: path.join(r(opts.cache), "..", "npm"), npm_config_update_notifier: "false", npm_config_fund: "false", npm_config_audit: "false" },
-        stdio: ["ignore", "pipe", "pipe"],
-      });
-      const [{ filename }] = JSON.parse(res.toString());
-      fs.renameSync(path.join(pkg, path.basename(filename)), path.join(pkg, `${manifest.name}-${v}-pi-package.tgz`));
-    } catch (err) {
-      warnings.push(`npm pack for the Pi package failed: ${err.message.split("\n")[0]}`);
-    }
-    for (const f of fs.readdirSync(pkg).sort()) artifacts[f] = sha256(fs.readFileSync(path.join(pkg, f)));
-    A.write(path.join(pkg, "SHA256SUMS"), Object.entries(artifacts).map(([f, h]) => `${h}  ${f}`).join("\n") + "\n");
-  }
-
-  const info = {
-    name: manifest.name,
-    version: manifest.version,
-    mcpServers: Object.keys(mcpServers),
-    skills: { native, imported: provenance.map((p) => p.skill), all: skills },
-    imports: provenance.map(({ files, ...rest }) => rest),
-    outputs: {
-      "agent-plugin": path.relative(out, portable),
-      claude: path.relative(out, claudeRoot),
-      codex: path.relative(out, codexRoot),
-      pi: path.relative(out, pi),
-    },
-    artifacts,
-    warnings,
-  };
-  A.write(path.join(out, "build-info.json"), info);
-  return info;
-}
-
-/** Router-only output: a portable plugin (root plugin.json, skills/<router>/) with web-facing metadata from toolkit.json router. */
-function buildRouter({ manifest, out, stage, skillDir, name, packages, license }) {
-  if (!fs.existsSync(skillDir)) throw new Error(`router skill ${name} not found in native skills`);
-  if (validateSkillDir(skillDir).frontmatter.compatibility) throw new Error(`router skill ${name} must not declare runtime requirements (compatibility)`);
-  const { router = {} } = manifest;
-  const m = { ...manifest, description: router.description ?? manifest.description, interface: { ...manifest.interface, ...router.interface }, mcpServers: {} };
-  const dir = path.join(out, m.name);
-  A.copyDir(skillDir, path.join(dir, "skills", name));
-  A.write(path.join(dir, "plugin.json"), A.portablePlugin(m));
-  if (license) A.write(path.join(dir, "LICENSE"), license);
-  fs.rmSync(stage, { recursive: true, force: true });
-  const artifacts = {};
-  if (packages) {
-    const pkg = path.join(out, "packages");
-    const file = `${m.name}-${m.version}-router-plugin.zip`;
-    zipDirectory(dir, path.join(pkg, file), "");
-    artifacts[file] = sha256(fs.readFileSync(path.join(pkg, file)));
-    A.write(path.join(pkg, "SHA256SUMS"), `${artifacts[file]}  ${file}\n`);
-  }
-  const info = {
-    name: m.name,
-    version: m.version,
-    router: true,
-    mcpServers: [],
-    skills: { native: [name], imported: [], all: [name] },
-    imports: [],
-    outputs: { router: path.relative(out, dir) },
-    artifacts,
-    warnings: [],
-  };
-  A.write(path.join(out, "build-info.json"), info);
-  return info;
+  return { name: m.name, version: m.version, skills: { native, imported: provenance.map((p) => p.skill), all: skills }, zip, warnings };
 }
 
 // ---- Generated documents ---------------------------------------------------
 
 const ROUTE_LABELS = {
   public: "public, no account needed",
-  credential: "needs the user's own credential; hand off to the user",
+  credential: "needs the user's own sign-in; hand off to the user",
   local: "needs a local shell or runtime; hand off when unavailable",
 };
 
@@ -269,44 +145,21 @@ function renderNotices(m, provenance) {
   return lines.join("\n");
 }
 
-function renderReadme(m, host, skills) {
-  const servers = Object.entries(m.mcpServers ?? {});
-  // Whether this host's output restricts tools by name (see scripts/lib/adapters.mjs).
-  const filtersTools = host === "codex" || host === "pi";
-  const serverLines = servers.map(([n, s]) => {
-    let line = `- \`${n}\`: ${s.url}`;
-    if (s.auth) line += host === "portable" ? ". Authenticate through the client's own MCP auth flow" : `. Set \`${s.auth.env}\` in the environment that starts the agent`;
-    if (s.docs) line += ` (${s.docs})`;
-    if (s.allowedTools) {
-      line += filtersTools
-        ? `. This output configures a tool-name allowlist (${s.allowedTools.length} tools); it is not proof of read-only access, so use a least-privilege credential.`
-        : ". This output does not filter tools: every tool the server offers is reachable, so use a least-privilege credential.";
-    }
-    return line;
-  });
-  const install = {
-    portable: [
-      `Agent Plugins 1.0.0 layout: \`plugin.json\`, ${servers.length ? "`mcp.json`, " : ""}\`skills/\`.`,
-      "Load it with a client that supports Agent Plugins 1.0.0." + (servers.length ? " `mcp.json` carries no credentials." : ""),
-    ],
-    claude: ["Try for one session: `claude --plugin-dir <path-to-this-directory>`.", "To install from the marketplace, point `claude plugin marketplace add <marketplace-root>` at the extracted marketplace folder containing `.claude-plugin/marketplace.json`, then run `claude plugin install " + m.name + "@" + m.name + "-marketplace`."],
-    codex: ["From the marketplace root two levels up: `codex plugin marketplace add <marketplace-root>` then `codex plugin add " + m.name + "@" + m.name + "-marketplace`."],
-    pi: [
-      "Try for one session: `pi -e <path-to-this-directory>`.",
-      "Install: `pi install <path-to-this-directory>` (add `-l` for project settings).",
-      ...(servers.length ? ["The extension registers MCP servers only when their credential variable is set. Servers with the same name in your own `mcp.json` take precedence, including their exposure settings."] : []),
-    ],
-  }[host];
+const signIn = (m) => [
+  "The MCP servers carry no credentials. Sign in once with OAuth from your client:",
+  "",
+  `- Claude Code: run \`/mcp\`, select \`plugin:${m.name}:<server>\`, then **Authenticate**.`,
+  "- Codex: `codex mcp login <server>`.",
+  "- Pi: `/mcp login <server>`.",
+];
+
+function renderPluginReadme(m, skills) {
   return [
-    `# ${m.name} ${m.version}`,
+    `# ${m.interface?.displayName ?? m.name} ${m.version}`,
     "",
     m.description,
     "",
-    "Generated build output. The editable source lives in the toolkit repository (`toolkit.json`, `skills/`, `imports.lock.json`).",
-    "",
-    "## Install",
-    "",
-    ...install.map((l) => `- ${l}`),
+    `Generated from https://github.com/${REPO}. Edit \`toolkit.json\` and \`skills/\` there.`,
     "",
     "## Skills",
     "",
@@ -314,9 +167,33 @@ function renderReadme(m, host, skills) {
     "",
     "## MCP servers",
     "",
-    ...(serverLines.length ? serverLines : ["None."]),
+    ...Object.entries(m.mcpServers ?? {}).map(([n, s]) => `- \`${n}\`: ${s.url}${s.docs ? ` (${s.docs})` : ""}`),
+    "",
+    ...signIn(m),
     "",
     "Third-party skills and their licenses are listed in `THIRD_PARTY_NOTICES.md`.",
+    "",
+  ].join("\n");
+}
+
+function renderStableReadme(m) {
+  const id = `${m.name}@${A.marketplaceName(m)}`;
+  return [
+    `# ${m.interface?.displayName ?? m.name} marketplace`,
+    "",
+    `Generated by the release workflow of https://github.com/${REPO} (${m.version}). Send changes to the default branch.`,
+    "",
+    "```sh",
+    `claude plugin marketplace add ${REPO}#stable`,
+    `claude plugin install ${id}`,
+    "",
+    `codex plugin marketplace add ${REPO} --ref stable`,
+    `codex plugin add ${id}`,
+    "",
+    `pi install git:github.com/${REPO}@stable`,
+    "```",
+    "",
+    ...signIn(m),
     "",
   ].join("\n");
 }
@@ -324,8 +201,7 @@ function renderReadme(m, host, skills) {
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   try {
     const info = build(parseArgs(process.argv.slice(2)));
-    console.log(`built ${info.name} ${info.version}: ${info.skills.all.length} skills (${info.skills.imported.length} imported)`);
-    for (const f of info.router ? Object.keys(info.artifacts) : []) console.log(`router plugin package: packages/${f}`);
+    console.log(`built ${info.name} ${info.version}: ${info.skills.all.length} skills (${info.skills.imported.length} imported), packages/${info.zip}`);
     for (const w of info.warnings) console.log(`warning: ${w}`);
   } catch (err) {
     console.error(`build failed: ${err.message}`);

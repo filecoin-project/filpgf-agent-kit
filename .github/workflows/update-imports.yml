@@ -2,7 +2,7 @@ name: update-imports
 
 # Daily: move upstream skill imports to the head of their tracked branch,
 # re-record hashes, test, build and validate, then commit imports.lock.json
-# directly to the default branch. See README "Daily upstream updates".
+# directly to the default branch. See the README "Maintainers" section.
 on:
   schedule:
     - cron: "17 5 * * *" # 05:17 UTC every day
@@ -45,8 +45,6 @@ jobs:
           npm test
           npm run build
           npm run validate
-          node scripts/build.mjs --out .cache/dist-oso --no-packages --enable-mcp oso
-          node scripts/validate-dist.mjs .cache/dist-oso
       - name: Only imports.lock.json changed
         if: steps.update.outputs.changed == 'true'
         run: |
