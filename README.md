@@ -2,7 +2,7 @@
 
 FilPGF Agent Kit helps agents with Filecoin public goods funding (FilPGF). It picks the right skill, MCP server, or data source and says which source wins in a conflict.
 
-It ships seven skills (four from upstream maintainers) and the OSO and Karma MCP servers. Every client installs it from the [`stable`](https://github.com/filecoin-project/filpgf-agent-kit/tree/stable) branch.
+It ships seven skills (four from upstream maintainers) and the Artio and Karma MCP servers. Every client installs it from the [`stable`](https://github.com/filecoin-project/filpgf-agent-kit/tree/stable) branch.
 
 ## Install
 
@@ -58,17 +58,17 @@ Admins: **Admin console > Plugins > Add > Import marketplace**, source `https://
 
 Download `filpgf-ecosystem-<version>.zip` from the [latest release](https://github.com/filecoin-project/filpgf-agent-kit/releases/latest) and upload it without extracting in **Customize > Plugins > Add > Upload plugin**.
 
-## Sign in to OSO and Karma
+## Sign in to Artio and Karma
 
-The plugin carries no keys. The first time you use OSO or Karma, sign in with OAuth from your client:
+The plugin carries no keys. The first time you use Artio or Karma, sign in with OAuth from your client:
 
 | Client | Sign in |
 |---|---|
-| Claude Code | `/mcp`, select `plugin:filpgf-ecosystem:oso` or `:karma`, then **Authenticate** |
-| Codex | `codex mcp login oso` and `codex mcp login karma` |
-| Pi | `/mcp login oso` and `/mcp login karma` |
+| Claude Code | `/mcp`, select `plugin:filpgf-ecosystem:artio` or `:karma`, then **Authenticate** |
+| Codex | `codex mcp login artio` and `codex mcp login karma` |
+| Pi | `/mcp login artio` and `/mcp login karma` |
 
-OSO metrics also need your Artio organization to have access to the `filecoin.filpgf_public` dataset. See the [sign-in guide](skills/filpgf-ecosystem/references/credentials.md).
+Artio metrics also need your Artio organization to have access to the `filecoin.filpgf_public` dataset. See the [sign-in guide](skills/filpgf-ecosystem/references/credentials.md).
 
 ## Update
 
@@ -80,7 +80,7 @@ OSO metrics also need your Artio organization to have access to the `filecoin.fi
 
 > Which sources should I use to check a FilPGF milestone, and which one wins if they disagree?
 
-A good answer cites Karma for milestones and payouts, OSO for metrics, and Git for code.
+A good answer cites Karma for milestones and payouts, Artio (formerly OSO) for metrics, and Git for code.
 
 Report problems in [GitHub issues](https://github.com/filecoin-project/filpgf-agent-kit/issues).
 

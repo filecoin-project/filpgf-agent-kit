@@ -1,6 +1,6 @@
 {
   "name": "filpgf-agent-kit",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "description": "Builds the FilPGF Agent Kit plugin and the stable marketplace branch for Claude Code, Codex, Pi and other agent clients.",
   "license": "MIT",

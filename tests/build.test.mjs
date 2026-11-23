@@ -47,12 +47,12 @@ test("builds the stable marketplace tree and the plugin ZIP", () => {
   ]);
   for (const f of [".claude-plugin/plugin.json", ".codex-plugin/plugin.json", ".mcp.json", "README.md", "LICENSE", "THIRD_PARTY_NOTICES.md", "skills/filpgf-ecosystem/references/sources.md", "skills/upstream-demo/UPSTREAM.json"]) assert.ok(fs.existsSync(path.join(plugin, f)), f);
 
-  // OSO and Karma ship as URLs only; clients run the OAuth sign-in.
+  // Artio and Karma ship as URLs only; clients run the OAuth sign-in.
   const mcp = JSON.parse(fs.readFileSync(path.join(plugin, ".mcp.json"), "utf8")).mcpServers;
-  assert.deepEqual(Object.keys(mcp), ["oso", "karma"]);
+  assert.deepEqual(Object.keys(mcp), ["artio", "karma"]);
   assert.deepEqual(mcp.karma, { type: "http", url: "https://api.karmahq.org/mcp" });
-  assert.ok(mcp.oso.enabled_tools.includes("SqlQuery"));
-  assert.ok(!mcp.oso.enabled_tools.some((t) => /^(create|update|delete|publish|dispatch)/i.test(t)), "allowlist has no write tools");
+  assert.ok(mcp.artio.enabled_tools.includes("SqlQuery"));
+  assert.ok(!mcp.artio.enabled_tools.some((t) => /^(create|update|delete|publish|dispatch)/i.test(t)), "allowlist has no write tools");
   const docs = listFiles(stable).filter((f) => /\.(md|json|ts)$/.test(f)).map((f) => fs.readFileSync(path.join(stable, f), "utf8")).join("\n");
   assert.doesNotMatch(docs, /OSO_TOKEN|KARMA_API_KEY|Authorization|x-api-key/);
 
@@ -62,7 +62,7 @@ test("builds the stable marketplace tree and the plugin ZIP", () => {
   assert.match(readme, /pi install git:github.com\/filecoin-project\/filpgf-agent-kit@stable/);
 
   const sources = fs.readFileSync(path.join(plugin, "skills/filpgf-ecosystem/references/sources.md"), "utf8");
-  assert.match(sources, /## Open Source Observer[\s\S]*?- Route: needs the user's own sign-in/);
+  assert.match(sources, /## Artio \(formerly Open Source Observer, OSO\) \(`artio`\)[\s\S]*?- Route: needs the user's own sign-in/);
   assert.match(sources, /Report problems: https:\/\/github.com\/davidgasquez\/filecoin-data-portal\/issues\/new/);
   assert.match(fs.readFileSync(path.join(plugin, "THIRD_PARTY_NOTICES.md"), "utf8"), /upstream-demo[\s\S]*License: MIT/);
 
@@ -106,12 +106,12 @@ test("validator catches credentials, version drift, stray files and broken links
   const dist = path.join(root, "dist");
   const plugin = path.join(dist, "stable/plugins", NAME);
   const edit = (f, fn) => fs.writeFileSync(f, JSON.stringify(fn(JSON.parse(fs.readFileSync(f, "utf8")))));
-  edit(path.join(plugin, ".mcp.json"), (j) => ((j.mcpServers.oso.headers = { Authorization: "Bearer sk-literal" }), j));
+  edit(path.join(plugin, ".mcp.json"), (j) => ((j.mcpServers.artio.headers = { Authorization: "Bearer sk-literal" }), j));
   edit(path.join(plugin, ".codex-plugin/plugin.json"), (j) => ({ ...j, version: "9.9.9" }));
   fs.writeFileSync(path.join(dist, "stable/run.sh"), "echo hi\n");
   fs.appendFileSync(path.join(plugin, "skills/filpgf-ecosystem/SKILL.md"), "\n[gone](references/missing.md) [root](/datasets.md)\n");
   const errors = validateDist(dist).join("\n");
-  for (const re of [/oso field headers not allowed/, /codex plugin.json: name\/version disagree/, /unexpected file at the marketplace root: run.sh/, /broken or escaping link references\/missing.md/, /broken or escaping link \/datasets.md/]) assert.match(errors, re);
+  for (const re of [/artio field headers not allowed/, /codex plugin.json: name\/version disagree/, /unexpected file at the marketplace root: run.sh/, /broken or escaping link references\/missing.md/, /broken or escaping link \/datasets.md/]) assert.match(errors, re);
 });
 
 test("refuses to write output outside the project or over sources", () => {

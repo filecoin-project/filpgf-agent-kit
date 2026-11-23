@@ -32,7 +32,7 @@ test("validates Agent Skills names, directory match and description", () => {
 
 test("all native skills are valid", () => {
   const dirs = listSkillDirs(path.join(repo, "skills"));
-  assert.deepEqual(dirs.map((d) => path.basename(d)).sort(), ["filpgf-ecosystem", "filpgf-oso-metrics", "filpgf-plugin-feedback"]);
+  assert.deepEqual(dirs.map((d) => path.basename(d)).sort(), ["filpgf-artio-metrics", "filpgf-ecosystem", "filpgf-plugin-feedback"]);
   for (const d of dirs) validateSkillDir(d);
 });
 
@@ -40,7 +40,7 @@ test("toolkit.json is valid and routes every source to a maintainer", () => {
   const m = loadManifest(path.join(repo, "toolkit.json"));
   for (const s of m.sources) assert.ok(s.report && s.maintainer, s.id);
   assert.ok(m.llmsTxt.endsWith("/llms.txt"));
-  assert.deepEqual(Object.keys(m.mcpServers), ["oso", "karma"], "OSO and Karma ship in the plugin");
+  assert.deepEqual(Object.keys(m.mcpServers), ["artio", "karma"], "Artio and Karma ship in the plugin");
   for (const s of Object.values(m.mcpServers)) assert.ok(!("auth" in s || "headers" in s), "servers rely on client OAuth");
 });
 

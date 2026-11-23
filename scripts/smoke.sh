@@ -5,7 +5,7 @@
 # touches the real branch. Each CLI runs in an empty environment with
 # temporary config dirs and no credentials. The script publishes the current
 # build, installs it, then publishes version+1 and upgrades. Missing CLIs are
-# skipped. Claude Code's MCP health check contacts the real OSO and Karma
+# skipped. Claude Code's MCP health check contacts the real Artio and Karma
 # endpoints, which must answer "needs authentication".
 set -eu
 
@@ -66,8 +66,8 @@ if have claude; then
   find "$T/claude/claude/plugins/cache" -name SKILL.md >"$T/out" 2>&1 || true
   check_skills "claude" "$T/out" "skills/"
   iso claude timeout 90 claude mcp list >"$T/out" 2>&1 || true
-  grep -q "plugin:$NAME:oso.*Needs authentication" "$T/out" && grep -q "plugin:$NAME:karma.*Needs authentication" "$T/out" \
-    && ok "claude: oso and karma listed, waiting for OAuth sign-in" || { cat "$T/out"; bad "claude MCP servers"; }
+  grep -q "plugin:$NAME:artio.*Needs authentication" "$T/out" && grep -q "plugin:$NAME:karma.*Needs authentication" "$T/out" \
+    && ok "claude: artio and karma listed, waiting for OAuth sign-in" || { cat "$T/out"; bad "claude MCP servers"; }
 else echo "skip - claude not installed"; fi
 
 if have codex; then
@@ -77,10 +77,10 @@ if have codex; then
   iso codex timeout 120 codex debug prompt-input smoke >"$T/prompt" 2>&1 || true
   check_skills "codex" "$T/prompt" "$NAME:"
   iso codex codex mcp list >"$T/out" 2>&1 || true
-  grep -q "^oso .*Not logged in" "$T/out" && grep -q "^karma .*Not logged in" "$T/out" \
-    && ok "codex: oso and karma listed, waiting for OAuth login" || { cat "$T/out"; bad "codex MCP servers"; }
-  iso codex codex mcp get oso >"$T/out" 2>&1 || true
-  grep -q "enabled_tools: .*SqlQuery" "$T/out" && ok "codex: oso tool allowlist applied" || { cat "$T/out"; bad "codex enabled_tools"; }
+  grep -q "^artio .*Not logged in" "$T/out" && grep -q "^karma .*Not logged in" "$T/out" \
+    && ok "codex: artio and karma listed, waiting for OAuth login" || { cat "$T/out"; bad "codex MCP servers"; }
+  iso codex codex mcp get artio >"$T/out" 2>&1 || true
+  grep -q "enabled_tools: .*SqlQuery" "$T/out" && ok "codex: artio tool allowlist applied" || { cat "$T/out"; bad "codex enabled_tools"; }
 else echo "skip - codex not installed"; fi
 
 if have pi; then
@@ -88,8 +88,8 @@ if have pi; then
   pi_commands
   check_skills "pi" "$T/out" "skill:"
   (printf '%s\n' '{"type":"prompt","id":"1","message":"/mcp"}'; sleep 8) | iso pi timeout 30 pi --mode rpc --no-session >"$T/out" 2>&1 || true
-  grep -q "oso: needs sign-in" "$T/out" && grep -q "karma: needs sign-in" "$T/out" \
-    && ok "pi: oso and karma registered, waiting for OAuth sign-in" || { cat "$T/out"; bad "pi MCP servers"; }
+  grep -q "artio: needs sign-in" "$T/out" && grep -q "karma: needs sign-in" "$T/out" \
+    && ok "pi: artio and karma registered, waiting for OAuth sign-in" || { cat "$T/out"; bad "pi MCP servers"; }
 else echo "skip - pi not installed"; fi
 
 publish "$V2"

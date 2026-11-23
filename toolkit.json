@@ -1,7 +1,7 @@
 {
   "name": "filpgf-ecosystem",
-  "version": "0.2.0",
-  "description": "Shared Filecoin public goods funding context for agents: a source map from filpgf.io/llms.txt, Karma, OSO, Filecoin Data Portal and Filoscope skills, plus OSO and Karma MCP servers.",
+  "version": "0.3.0",
+  "description": "Shared Filecoin public goods funding context for agents: a source map from filpgf.io/llms.txt, Karma, Artio, Filecoin Data Portal and Filoscope skills, plus Artio and Karma MCP servers.",
   "author": {
     "name": "FilPGF ecosystem contributors"
   },
@@ -13,7 +13,7 @@
     "filpgf",
     "public-goods",
     "karma",
-    "oso",
+    "artio",
     "fdp",
     "filoscope",
     "agent-skills"
@@ -32,9 +32,9 @@
   },
   "llmsTxt": "https://www.filpgf.io/llms.txt",
   "mcpServers": {
-    "oso": {
-      "url": "https://mcp.oso.xyz/mcp",
-      "description": "Open Source Observer (Artio) metrics, code activity and SQL over OSO datasets",
+    "artio": {
+      "url": "https://mcp.artio.so/mcp",
+      "description": "Artio (formerly Open Source Observer, OSO) metrics, code activity and SQL over its datasets",
       "docs": "https://docs.opensource.observer/docs/mcp.md",
       "allowedTools": [
         "ListDatasets",
@@ -107,22 +107,22 @@
       "report": "info@karmahq.xyz (see https://www.karmahq.org/mcp/connect)"
     },
     {
-      "id": "oso",
-      "name": "Open Source Observer (Artio)",
+      "id": "artio",
+      "name": "Artio (formerly Open Source Observer, OSO)",
       "covers": "Project metrics and code activity; Kernel projects on Karma carry `osoProjectSlug`",
-      "url": "https://mcp.oso.xyz/mcp",
+      "url": "https://mcp.artio.so/mcp",
       "docs": "https://docs.opensource.observer/docs/mcp.md ; Filecoin guide: https://github.com/opensource-observer/insights/blob/2782f052fbd4dc3ebd3366aed29b5e755e69a09e/community/filecoin/skills.md (Apache-2.0)",
-      "access": "MCP server `oso`, bundled in the plugin; the newer endpoint https://mcp.artio.so/mcp is documented upstream",
+      "access": "MCP server `artio`, bundled in the plugin. filpgf.io/llms.txt and older guides still call it OSO and list the old endpoint https://mcp.oso.xyz/mcp, which keeps working",
       "auth": "OAuth sign-in in the client with an Artio account; no key in the plugin",
       "route": "credential",
       "upstream": "https://github.com/opensource-observer/insights/blob/2782f052fbd4dc3ebd3366aed29b5e755e69a09e/community/filecoin/skills.md",
-      "handoff": "The user signs in to `oso` from their client (see references/credentials.md). Until then, say OSO was not checked and mark metrics \"Can't verify\". Karma's `osoProjectSlug` still identifies the project.",
+      "handoff": "The user signs in to `artio` from their client (see references/credentials.md). Until then, say Artio was not checked and mark metrics \"Can't verify\". Karma's `osoProjectSlug` still identifies the project.",
       "authority": "Wins for metrics",
       "skills": [
-        "filpgf-oso-metrics",
+        "filpgf-artio-metrics",
         "filpgf-review-work"
       ],
-      "maintainer": "Open Source Observer (Artio)",
+      "maintainer": "Artio (formerly Open Source Observer)",
       "report": "Platform: https://github.com/opensource-observer/oso/issues/new; Filecoin metrics and guides: https://github.com/opensource-observer/insights/issues/new; project identities: https://github.com/opensource-observer/oss-directory/issues/new"
     },
     {
