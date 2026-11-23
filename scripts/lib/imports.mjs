@@ -91,7 +91,7 @@ export function resolveRef(url, ref) {
 }
 
 /** Fetch a single pinned commit into a cache directory (bare repo). Returns git dir. */
-export function fetchCommit(source, cacheRoot) {
+function fetchCommit(source, cacheRoot) {
   const key = sha256(`${source.url}\n${source.commit}`).slice(0, 16);
   const gitDir = path.join(cacheRoot, `${key}.git`);
   const has = () => {
@@ -120,7 +120,7 @@ export function fetchCommit(source, cacheRoot) {
 }
 
 /** Return Map(repoPath -> Buffer) of the files selected by a lock entry, plus the license text. */
-export function readSelectedFiles(entry, gitDir) {
+function readSelectedFiles(entry, gitDir) {
   const base = entry.path ? `${entry.path.replace(/\/$/, "")}/` : "";
   const listing = git(["--git-dir", gitDir, "ls-tree", "-r", "-z", "--full-tree", entry.source.commit]).toString();
   const all = new Map(); // path -> {mode, oid}

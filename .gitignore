@@ -7,8 +7,6 @@
 *.pem
 *.key
 
-# Build output and caches
-dist/
+# Caches (upstream git objects for npm run sync)
 .cache/
 node_modules/
-*.tgz

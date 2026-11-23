@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
   # Read-only: resolves refs, fetches upstream blobs and runs this repository's
-  # own tests and build. Upstream files are read as git blobs, never executed.
+  # own tests and checks. Upstream files are read as git blobs, never executed.
   update:
     runs-on: ubuntu-latest
     permissions:
