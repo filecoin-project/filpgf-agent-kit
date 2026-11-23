@@ -1,0 +1,15 @@
+{
+  "skill": "filpgf-read-karma",
+  "repository": "https://github.com/show-karma/filecoin-grants",
+  "commit": "9505fd058d71980fb230acf507d4041de90f565b",
+  "path": "skills/filpgf-read-karma",
+  "sourceUrl": "https://github.com/show-karma/filecoin-grants/tree/9505fd058d71980fb230acf507d4041de90f565b/skills/filpgf-read-karma",
+  "license": "MIT",
+  "licenseFile": "LICENSE",
+  "licenseEvidence": "SKILL.md frontmatter license: MIT; repository LICENSE (MIT)",
+  "files": {
+    "LICENSE": "909dbc1ec0c624785f08276b7068ed34a88612d367b3afc2d2d9499783a56a85",
+    "skills/filpgf-read-karma/SKILL.md": "fda15a59c424fe29cb0fa929616a07340d32c0918b23e251815a98b47170ddd0"
+  },
+  "transforms": []
+}

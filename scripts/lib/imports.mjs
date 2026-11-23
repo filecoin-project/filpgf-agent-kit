@@ -1,8 +1,8 @@
-// Reproducible build-time imports of upstream skills.
+// Pinned imports of upstream skills.
 //
 // Each lock entry pins a git repository to a full commit SHA, names the skill
 // directory inside it, and records the SHA-256 of every imported file. The
-// build fetches exactly that commit, refuses any file set or content that
+// sync fetches exactly that commit, refuses any file set or content that
 // differs from the lock, then applies declared transforms and writes
 // provenance next to the skill.
 import fs from "node:fs";
@@ -14,7 +14,7 @@ import { NAME_RE, parseFrontmatter } from "./skills.mjs";
 
 const SHA_RE = /^[0-9a-f]{40}$/;
 const SPDX_RE = /^[A-Za-z0-9.+-]+$/;
-// Branch to track for updates; the build always uses source.commit.
+// Branch to track for updates; sync always uses source.commit.
 const BRANCH_RE = /^(?!-)(?!.*\.\.)(?!.*\/\/)[A-Za-z0-9._/-]+(?<![/.])$/;
 
 export const sha256 = (buf) => crypto.createHash("sha256").update(buf).digest("hex");

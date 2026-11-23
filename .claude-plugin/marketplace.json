@@ -1,0 +1,36 @@
+{
+  "$schema": "https://www.schemastore.org/claude-code-marketplace.json",
+  "name": "filpgf-ecosystem-marketplace",
+  "description": "FilPGF Agent Kit: Filecoin public goods funding skills and MCP servers for agents.",
+  "owner": {
+    "name": "FilPGF ecosystem contributors",
+    "url": "https://github.com/filecoin-project/filpgf-agent-kit"
+  },
+  "plugins": [
+    {
+      "name": "filpgf-ecosystem",
+      "source": "./plugins/filpgf-ecosystem",
+      "description": "Shared Filecoin public goods funding context for agents: a source map from filpgf.io/llms.txt, Karma, Artio, Filecoin Data Portal and Filoscope skills, plus Artio and Karma MCP servers.",
+      "category": "productivity",
+      "keywords": [
+        "filecoin",
+        "filpgf",
+        "public-goods",
+        "karma",
+        "artio",
+        "fdp",
+        "filoscope",
+        "agent-skills"
+      ],
+      "skills": [
+        "./skills/fdp",
+        "./skills/filoscope",
+        "./skills/filpgf-artio-metrics",
+        "./skills/filpgf-ecosystem",
+        "./skills/filpgf-plugin-feedback",
+        "./skills/filpgf-read-karma",
+        "./skills/filpgf-review-work"
+      ]
+    }
+  ]
+}

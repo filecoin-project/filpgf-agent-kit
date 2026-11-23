@@ -45,7 +45,7 @@ export function updateImports({ lockFile, cache, resolve = resolveRef }) {
       if (updated.files[e.license.file] !== e.files[e.license.file]) {
         throw new Error(`import ${e.skill}: license file ${e.license.file} changed at ${commit}; review the license and run \`npm run imports:pin\` by hand`);
       }
-      // Run the build's checks (skill name, SKILL.md license, transforms) before accepting.
+      // Run the sync checks (skill name, SKILL.md license, transforms) before accepting.
       materializeImport(updated, scratch, cache);
       const before = Object.keys(e.files);
       const after = Object.keys(updated.files);
@@ -78,7 +78,7 @@ export function commitMessage(changes) {
     lines.push(`- ${c.skill}: ${c.from.slice(0, 12)} -> ${c.to.slice(0, 12)}`);
     for (const [label, files] of [["added", c.added], ["removed", c.removed], ["modified", c.modified]]) if (files.length) lines.push(`  ${label}: ${files.join(", ")}`);
   }
-  lines.push("", "Automated by .github/workflows/update-imports.yml after tests, build and validation passed.");
+  lines.push("", "Automated by .github/workflows/update-imports.yml after tests and checks passed.");
   return lines.join("\n") + "\n";
 }
 

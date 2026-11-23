@@ -1,8 +1,8 @@
 name: update-imports
 
 # Daily: move upstream skill imports to the head of their tracked branch,
-# re-record hashes, test, build and validate, then commit imports.lock.json
-# directly to the default branch. See the README "Maintainers" section.
+# re-record hashes, copy the skills into the plugin, test and check, then
+# commit directly to the default branch. See the README "Maintainers" section.
 on:
   schedule:
     - cron: "17 5 * * *" # 05:17 UTC every day
@@ -39,28 +39,29 @@ jobs:
           mkdir -p "$RUNNER_TEMP/update"
           node scripts/update-imports.mjs --message "$RUNNER_TEMP/update/commit-message.txt"
           if git diff --quiet -- imports.lock.json; then echo "changed=false"; else echo "changed=true"; fi >> "$GITHUB_OUTPUT"
-      - name: Tests, build and validation with the updated lock
+      - name: Copy the updated skills into the plugin, then test and check
         if: steps.update.outputs.changed == 'true'
         run: |
+          npm run sync
           npm test
-          npm run build
-          npm run validate
-      - name: Only imports.lock.json changed
+          npm run check
+      - name: Save the change as a patch
         if: steps.update.outputs.changed == 'true'
         run: |
+          git add -A
           git status --porcelain
-          test "$(git status --porcelain)" = " M imports.lock.json"
-          cp imports.lock.json "$RUNNER_TEMP/update/"
+          git diff --cached --binary > "$RUNNER_TEMP/update/update.patch"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: steps.update.outputs.changed == 'true'
         with:
-          name: updated-lock
+          name: update
           path: ${{ runner.temp }}/update/
           if-no-files-found: error
           retention-days: 7
 
   # The only job with write access. It runs no repository or upstream code:
-  # it commits the validated lock on top of the exact commit that was tested.
+  # it applies the tested patch on top of the exact commit that was tested, and
+  # only if it touches nothing but the lock, the notices and the imported skills.
   # The push is a fast-forward of the default branch, so it fails (and the
   # next day's run retries) if the branch moved in the meantime.
   commit:
@@ -79,22 +80,24 @@ jobs:
           persist-credentials: true
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
-          name: updated-lock
+          name: update
           path: ${{ runner.temp }}/update
-      - name: Commit imports.lock.json and push to the default branch
+      - name: Commit the update and push to the default branch
         id: push
         env:
           BRANCH: ${{ github.ref_name }}
         run: |
-          cp "$RUNNER_TEMP/update/imports.lock.json" imports.lock.json
+          git apply --index "$RUNNER_TEMP/update/update.patch"
           jq -e '.lockfileVersion == 1 and (.imports | length > 0)' imports.lock.json >/dev/null
-          test "$(git status --porcelain)" = " M imports.lock.json"
+          allowed="^(imports\.lock\.json|plugins/filpgf-ecosystem/THIRD_PARTY_NOTICES\.md|plugins/filpgf-ecosystem/skills/($(jq -r '[.imports[].skill] | join("|")' imports.lock.json))/.+)$"
+          git diff --cached --name-only | tee "$RUNNER_TEMP/changed.txt"
+          if grep -Ev "$allowed" "$RUNNER_TEMP/changed.txt"; then echo "the update touches files outside the imported skills"; exit 1; fi
           git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
-            commit -q -F "$RUNNER_TEMP/update/commit-message.txt" -- imports.lock.json
+            commit -q -F "$RUNNER_TEMP/update/commit-message.txt"
           git push origin "HEAD:refs/heads/$BRANCH"
           echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
-  # Build, validate and upload artifacts for the pushed commit.
+  # Test and check the pushed commit.
   ci:
     needs: commit
     permissions:

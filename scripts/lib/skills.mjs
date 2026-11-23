@@ -69,3 +69,18 @@ export function listSkillDirs(root) {
     .map((d) => path.join(root, d.name))
     .sort();
 }
+
+/** Every regular file under `root`, as sorted POSIX paths; throws on symlinks and other special files. */
+export function listFiles(root) {
+  const out = [];
+  const walk = (dir) => {
+    for (const d of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, d.name);
+      if (d.isDirectory()) walk(full);
+      else if (d.isFile()) out.push(path.relative(root, full).split(path.sep).join("/"));
+      else throw new Error(`refusing non-regular file ${full}`);
+    }
+  };
+  walk(root);
+  return out.sort();
+}

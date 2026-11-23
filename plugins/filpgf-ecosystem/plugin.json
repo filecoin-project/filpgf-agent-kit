@@ -1,0 +1,39 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "filpgf-ecosystem",
+  "version": "0.3.0",
+  "description": "Shared Filecoin public goods funding context for agents: a source map from filpgf.io/llms.txt, Karma, Artio, Filecoin Data Portal and Filoscope skills, plus Artio and Karma MCP servers.",
+  "author": {
+    "name": "FilPGF ecosystem contributors"
+  },
+  "homepage": "https://www.filpgf.io/llms.txt",
+  "repository": "https://github.com/filecoin-project/filpgf-agent-kit",
+  "license": "MIT",
+  "keywords": [
+    "filecoin",
+    "filpgf",
+    "public-goods",
+    "karma",
+    "artio",
+    "fdp",
+    "filoscope",
+    "agent-skills"
+  ],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "FilPGF Agent Kit",
+        "shortDescription": "Find and use Filecoin PGF sources",
+        "developerName": "FilPGF ecosystem contributors",
+        "category": "Productivity",
+        "defaultPrompt": [
+          "Which sources should I use to check this FilPGF milestone, and which one wins if they disagree?",
+          "Show onboarded data over the last week from the Filecoin Data Portal",
+          "Where does Filecoin storage provider data live, and who maintains it?"
+        ],
+        "longDescription": "Find the authoritative source for Filecoin public goods funding, milestones, payouts, and project metrics. The kit explains where to look, which source wins when records disagree, and whether a tool needs separate access.",
+        "websiteURL": "https://www.filpgf.io"
+      }
+    }
+  }
+}

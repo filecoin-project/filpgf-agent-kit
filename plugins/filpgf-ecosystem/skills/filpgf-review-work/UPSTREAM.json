@@ -1,0 +1,18 @@
+{
+  "skill": "filpgf-review-work",
+  "repository": "https://github.com/show-karma/filecoin-grants",
+  "commit": "9505fd058d71980fb230acf507d4041de90f565b",
+  "path": "skills/filpgf-review-work",
+  "sourceUrl": "https://github.com/show-karma/filecoin-grants/tree/9505fd058d71980fb230acf507d4041de90f565b/skills/filpgf-review-work",
+  "license": "MIT",
+  "licenseFile": "LICENSE",
+  "licenseEvidence": "SKILL.md frontmatter license: MIT; repository LICENSE (MIT)",
+  "files": {
+    "LICENSE": "909dbc1ec0c624785f08276b7068ed34a88612d367b3afc2d2d9499783a56a85",
+    "skills/filpgf-review-work/references/milestone-review.md": "950627cbdbf6f707a257b26b4907d58c4095c7f67052022e66d2f45f5bbd0b28",
+    "skills/filpgf-review-work/references/packet.md": "794e6de18a1b3e8a1b8a6000b0370aaa720db54aea9512840b810271e7ab6387",
+    "skills/filpgf-review-work/references/project-review.md": "4fb2094b1085b7c5d137da76afeebce4a28bdbb3a0a245eb2bbae31a2ec6fe09",
+    "skills/filpgf-review-work/SKILL.md": "1dcd118cf45f8f4193bb06ecd5db13a9d2c05ee31f511b9438cd8c23bab139ae"
+  },
+  "transforms": []
+}

@@ -1,0 +1,21 @@
+{
+  "skill": "fdp",
+  "repository": "https://github.com/davidgasquez/filecoin-data-portal",
+  "commit": "ea557bd555dfee13dc71fb2766f3142073358c2a",
+  "path": "web/public",
+  "sourceUrl": "https://github.com/davidgasquez/filecoin-data-portal/tree/ea557bd555dfee13dc71fb2766f3142073358c2a/web/public",
+  "license": "MIT",
+  "licenseFile": "LICENSE",
+  "licenseEvidence": "repository LICENSE (MIT); SKILL.md has no license field",
+  "files": {
+    "LICENSE": "ed1c2aa8bab01290e824c4a372d0ef2f631fd6fd89dc813b176f585e468aa9e5",
+    "web/public/SKILL.md": "4188c14176ebe71a2155fde85be669e645a55b94b873ef36da30c4f9932bc3e3"
+  },
+  "transforms": [
+    {
+      "type": "rewrite-root-relative-links",
+      "file": "SKILL.md",
+      "origin": "https://filecoindataportal.xyz"
+    }
+  ]
+}

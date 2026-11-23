@@ -1,0 +1,15 @@
+{
+  "skill": "filoscope",
+  "repository": "https://github.com/davidgasquez/filoscope",
+  "commit": "2eb3415b9e8cd3247d73d96b6c83632b38608a65",
+  "path": ".",
+  "sourceUrl": "https://github.com/davidgasquez/filoscope/tree/2eb3415b9e8cd3247d73d96b6c83632b38608a65",
+  "license": "MIT",
+  "licenseFile": "LICENSE",
+  "licenseEvidence": "SKILL.md frontmatter license: MIT; repository LICENSE (MIT)",
+  "files": {
+    "LICENSE": "0fe16152d405b92f6127b7c36a4b6359b759368aef97f2a1b74c834aef8cecef",
+    "SKILL.md": "519cc667f9e411a0016070591100a61d9df190b1dc0fe65ca0775cdee21d7a1d"
+  },
+  "transforms": []
+}

@@ -1,0 +1,20 @@
+{
+  "name": "filpgf-ecosystem-marketplace",
+  "interface": {
+    "displayName": "FilPGF Agent Kit"
+  },
+  "plugins": [
+    {
+      "name": "filpgf-ecosystem",
+      "source": {
+        "source": "local",
+        "path": "./plugins/filpgf-ecosystem"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}
