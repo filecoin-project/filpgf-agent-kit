@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "filpgf",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Shared Filecoin public goods funding context for agents: a source map from filpgf.io/llms.txt, Karma, Artio, Filecoin Data Portal and Filoscope skills, plus Artio and Karma MCP servers.",
   "author": {
     "name": "FilPGF ecosystem contributors"
