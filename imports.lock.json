@@ -70,7 +70,7 @@
         "type": "git",
         "url": "https://github.com/davidgasquez/filecoin-data-portal",
         "ref": "main",
-        "commit": "ea557bd555dfee13dc71fb2766f3142073358c2a"
+        "commit": "6d0c88ab935bff8f58b5881d4b5e4a9cef6d4a41"
       },
       "path": "web/public",
       "include": [

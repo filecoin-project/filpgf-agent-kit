@@ -25,8 +25,8 @@ This plugin includes the following upstream skills, copied from pinned commits a
 
 ## fdp
 
-- Source: https://github.com/davidgasquez/filecoin-data-portal/tree/ea557bd555dfee13dc71fb2766f3142073358c2a/web/public
-- Commit: `ea557bd555dfee13dc71fb2766f3142073358c2a`
+- Source: https://github.com/davidgasquez/filecoin-data-portal/tree/6d0c88ab935bff8f58b5881d4b5e4a9cef6d4a41/web/public
+- Commit: `6d0c88ab935bff8f58b5881d4b5e4a9cef6d4a41`
 - License: MIT (full text in `skills/fdp/LICENSE`)
 - License evidence: repository LICENSE (MIT); SKILL.md has no license field
 - Modified: rewrite-root-relative-links in `SKILL.md` (origin https://filecoindataportal.xyz)
